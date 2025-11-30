@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [vue(), vueDevTools()],
+    plugins: [vue()],
     server: {
       port: Number(env.VITE_PORT),
       proxy: {
