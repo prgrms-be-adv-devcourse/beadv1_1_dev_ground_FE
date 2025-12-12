@@ -1,8 +1,9 @@
-<script setup></script>
-
 <template>
-  <h1>메인페이지</h1>
-  <p></p>
+  <AppLayout />
 </template>
+
+<script setup>
+import AppLayout from './layouts/AppLayout.vue'
+</script>
 
 <style scoped></style>
