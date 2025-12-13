@@ -4,7 +4,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex items-center gap-4">
         <!-- 로고 -->
-        <a href="/" class="flex items-center gap-2 flex-shrink-0">
+        <a href="/public" class="flex items-center gap-2 flex-shrink-0">
           <div
             class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center"
           >
@@ -84,7 +84,7 @@
 
             <!-- Chat -->
             <button
-              @click="openChat"
+              @click="showChatModal = true"
               class="group relative inline-flex items-center justify-center h-10 w-10 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
               aria-label="채팅"
             >
@@ -143,23 +143,30 @@
       </div>
     </div>
   </header>
+  <ChatModal
+    :open="showChatModal"
+    @close="showChatModal = false"
+    @unread-update="unreadChatCount = $event"
+  />
 </template>
 
 <script setup>
 import router from '@/router'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import ChatModal from '@/components/ChatModal.vue'
 
 // 상태 관리
 const showMobileMenu = ref(false)
+const showChatModal = ref(false)
 
 // 인증 관련 상태
 const accessToken = ref(null)
 const refreshToken = ref(null)
 const userName = ref('')
 const cartCount = ref(3)
-const unreadChatCount = ref(3)
+const unreadChatCount = ref(0)
 
-const isLoggedIn = ref(false)
+const isLoggedIn = ref(true)
 
 // 로그인 여부 계산
 // const isLoggedIn = computed(() => {
@@ -172,12 +179,6 @@ const goToCart = () => {
   console.log('장바구니로 이동')
   showMobileMenu.value = false
   // router.push('/cart')
-}
-
-const openChat = () => {
-  console.log('채팅 열기')
-  showMobileMenu.value = false
-  // router.push('/chat')
 }
 
 const goToMyPage = () => {
