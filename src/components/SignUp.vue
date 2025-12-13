@@ -12,37 +12,6 @@
         </div>
 
         <form @submit.prevent="handleSignup" class="space-y-6">
-          <!-- 프로필 이미지 -->
-          <div class="flex flex-col items-center">
-            <div class="relative">
-              <div
-                class="w-24 h-24 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center overflow-hidden"
-              >
-                <img
-                  v-if="profilePreview"
-                  :src="profilePreview"
-                  alt="프로필 이미지"
-                  class="w-full h-full object-cover"
-                />
-                <span v-else class="text-4xl text-gray-400">👤</span>
-              </div>
-              <label
-                for="profileImage"
-                class="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-md"
-              >
-                <span class="text-white text-sm">📷</span>
-                <input
-                  id="profileImage"
-                  type="file"
-                  accept="image/*"
-                  @change="handleImageChange"
-                  class="hidden"
-                />
-              </label>
-            </div>
-            <p class="mt-2 text-xs text-gray-500">프로필 사진 (선택)</p>
-          </div>
-
           <!-- 2열 레이아웃 -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <!-- 이름 -->
@@ -87,17 +56,51 @@
             <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
               이메일 <span class="text-red-500">*</span>
             </label>
-            <input
-              id="email"
-              v-model="signupForm.email"
-              type="email"
-              required
-              placeholder="example@email.com"
-              class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
-              :class="{ 'border-red-500': errors.email }"
-            />
+            <div class="flex gap-2">
+              <input
+                id="email"
+                v-model="signupForm.email"
+                type="email"
+                required
+                placeholder="example@email.com"
+                class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
+                :class="{ 'border-red-500': errors.email }"
+              />
+              <button
+                type="button"
+                @click="checkEmail"
+                class="px-5 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors whitespace-nowrap text-sm"
+              >
+                인증번호 전송
+              </button>
+            </div>
             <p v-if="errors.email" class="mt-2 text-xs text-red-600">{{ errors.email }}</p>
           </div>
+
+          <!-- 인증번호 입력/확인 -->
+          <div v-if="isCodeSent" class="mt-3 flex gap-2">
+            <input
+              v-model="verificationCode"
+              type="text"
+              placeholder="인증번호 입력"
+              class="flex-1 px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm"
+            />
+            <button
+              type="button"
+              @click="verifyEmail"
+              :disabled="isVerifying || !verificationCode"
+              class="px-4 py-3.5 bg-indigo-600 text-white rounded-xl disabled:bg-gray-400"
+            >
+              {{ isVerifying ? '확인 중...' : '인증 확인' }}
+            </button>
+          </div>
+          <p
+            v-if="codeMessage"
+            class="mt-2 text-xs"
+            :class="codeMessageType === 'error' ? 'text-red-600' : 'text-green-600'"
+          >
+            {{ codeMessage }}
+          </p>
 
           <!-- 비밀번호 -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -185,17 +188,9 @@
                 type="text"
                 required
                 placeholder="기본 주소"
-                readonly
-                class="flex-1 px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm bg-gray-50"
+                class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
                 :class="{ 'border-red-500': errors.address }"
               />
-              <button
-                type="button"
-                @click="searchAddress"
-                class="px-5 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors whitespace-nowrap text-sm"
-              >
-                주소 검색
-              </button>
             </div>
             <p v-if="errors.address" class="mt-2 text-xs text-red-600">{{ errors.address }}</p>
           </div>
@@ -209,9 +204,11 @@
               id="addressDetail"
               v-model="signupForm.addressDetail"
               type="text"
-              placeholder="상세 주소 입력 (선택)"
+              required
+              placeholder="상세 주소 입력"
               class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
             />
+            <p v-if="errors.address" class="mt-2 text-xs text-red-600">{{ errors.address }}</p>
           </div>
 
           <!-- 약관 동의 -->
@@ -308,6 +305,8 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
+import axios from 'axios'
+import router from '@/router/index.js'
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()
@@ -316,8 +315,14 @@ import { ref, reactive, watch } from 'vue'
 const isLoading = ref(false)
 const showPassword = ref(false)
 const showPasswordConfirm = ref(false)
-const profilePreview = ref(null)
-const profileImage = ref(null)
+
+const isSendingEmail = ref(false)
+const isCodeSent = ref(false)
+const verificationCode = ref('')
+const isVerifying = ref(false)
+const emailVerified = ref(false)
+const codeMessage = ref('')
+const codeMessageType = ref('') // 'error' | 'success'
 
 const signupForm = reactive({
   name: '',
@@ -361,30 +366,61 @@ watch(
   },
 )
 
-// 프로필 이미지 변경
-const handleImageChange = (e) => {
-  const file = e.target.files[0]
-  if (file) {
-    profileImage.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profilePreview.value = e.target.result
-    }
-    reader.readAsDataURL(file)
+// 주소 검색 (Daum 우편번호 API)
+// const searchAddress = () => {
+//   // Daum 우편번호 API 사용
+//   new window.daum.Postcode({
+//     oncomplete: function (data) {
+//       signupForm.address = data.address
+//     },
+//   }).open()
+//
+//   // 또는 백엔드 API 호출
+//   // const response = await fetch('/api/address/search')
+// }
+
+const checkEmail = async () => {
+  codeMessage.value = ''
+  isSendingEmail.value = true
+  try {
+    const res = await fetch('/api/users/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: signupForm.email }),
+    })
+
+    if (!res.ok) throw new Error('전송 실패')
+    isCodeSent.value = true
+    codeMessage.value = '인증번호가 전송되었습니다.'
+    codeMessageType.value = 'success'
+  } catch (e) {
+    codeMessage.value = e.message || '전송에 실패했습니다.'
+    codeMessageType.value = 'error'
+  } finally {
+    isSendingEmail.value = false
   }
 }
 
-// 주소 검색 (Daum 우편번호 API)
-const searchAddress = () => {
-  // Daum 우편번호 API 사용
-  new window.daum.Postcode({
-    oncomplete: function (data) {
-      signupForm.address = data.address
-    },
-  }).open()
-
-  // 또는 백엔드 API 호출
-  // const response = await fetch('/api/address/search')
+const verifyEmail = async () => {
+  codeMessage.value = ''
+  isVerifying.value = true
+  try {
+    const res = await fetch('/api/users/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: signupForm.email, code: verificationCode.value }),
+    })
+    if (!res.ok) throw new Error('인증 실패')
+    emailVerified.value = true
+    codeMessage.value = '이메일 인증이 완료되었습니다.'
+    codeMessageType.value = 'success'
+  } catch (e) {
+    emailVerified.value = false
+    codeMessage.value = e.message || '인증에 실패했습니다.'
+    codeMessageType.value = 'error'
+  } finally {
+    isVerifying.value = false
+  }
 }
 
 // 폼 검증
@@ -472,42 +508,34 @@ const handleSignup = async () => {
 
   isLoading.value = true
 
+  // JSON 페이로드 생성
+  const payload = {
+    name: signupForm.name,
+    nickname: signupForm.nickname,
+    email: signupForm.email,
+    password: signupForm.password,
+    phone: signupForm.phone,
+    address: signupForm.address,
+    addressDetail: signupForm.addressDetail,
+  }
+
   try {
-    // FormData 생성 (프로필 이미지 포함)
-    const formData = new FormData()
-    formData.append('name', signupForm.name)
-    formData.append('nickname', signupForm.nickname)
-    formData.append('email', signupForm.email)
-    formData.append('password', signupForm.password)
-    formData.append('phone', signupForm.phone)
-    formData.append('address', signupForm.address)
-    formData.append('addressDetail', signupForm.addressDetail)
-    formData.append('agreeMarketing', signupForm.agreeMarketing)
-
-    if (profileImage.value) {
-      formData.append('profileImage', profileImage.value)
-    }
-
     // 실제 API 호출
-    const response = await fetch('/api/auth/signup', {
-      method: 'POST',
-      body: formData,
+    const { data, status } = await axios.post('/api/users/register', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log('회원가입 성공:', data)
+    if (status) {
+      console.log('회원가입 성공', data)
       alert('회원가입이 완료되었습니다!')
 
       // 로그인 페이지로 이동
-      // router.push('/login')
-    } else {
-      const error = await response.json()
-      alert(error.message || '회원가입에 실패했습니다.')
+      await router.push('/login')
     }
-  } catch (error) {
-    console.error('회원가입 오류:', error)
-    alert('회원가입 중 오류가 발생했습니다.')
+  } catch (err) {
+    const msg = err.response?.data?.message || '회원가입에 실패했습니다.'
+    alert(msg)
   } finally {
     isLoading.value = false
   }
