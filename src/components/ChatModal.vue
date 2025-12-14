@@ -489,13 +489,13 @@ watch(
   { deep: true, flush: 'post' },
 )
 
-onMounted(async () => {
-  // 기본 X-CODE를 미리 채워놓고 싶다면 여기 설정
-  const { data } = await api.get('/chat/test')
-  console.log(data)
-  console.warn(data)
-  console.error(data)
-})
+// onMounted(async () => {
+//   // 기본 X-CODE를 미리 채워놓고 싶다면 여기 설정
+//   const { data } = await api.get('/chat/test')
+//   console.log(data)
+//   console.warn(data)
+//   console.error(data)
+// })
 
 onBeforeUnmount(() => {
   disconnectStomp()
