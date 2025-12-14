@@ -210,6 +210,47 @@ const handleLogout = () => {
   }
 }
 
+// 토큰 저장
+const saveTokens = (access, refresh) => {
+  accessToken.value = access
+  refreshToken.value = refresh
+  localStorage.setItem('accessToken', access)
+  localStorage.setItem('refreshToken', refresh)
+  isLoggedIn.value = true
+}
+
+// 토큰 로드
+const loadTokens = () => {
+  const access = localStorage.getItem('accessToken')
+  const refresh = localStorage.getItem('refreshToken')
+  if (access && refresh) {
+    accessToken.value = access
+    refreshToken.value = refresh
+    isLoggedIn.value = true
+  }
+}
+
+// 토큰 삭제
+const clearTokens = () => {
+  accessToken.value = null
+  refreshToken.value = null
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  isLoggedIn.value = false
+}
+
+// 유저 정보 가져오기
+const fetchUserInfo = async () => {
+  try {
+    // TODO: 실제 API 호출로 변경
+    // const response = await axios.get('/api/users/me')
+    // userName.value = response.data.name
+    userName.value = '사용자' // 임시
+  } catch (error) {
+    console.error('유저 정보 조회 실패:', error)
+  }
+}
+
 // 컴포넌트 마운트시 토큰 로드 및 유저 정보 가져오기
 onMounted(() => {
   loadTokens()
