@@ -99,7 +99,6 @@
               placeholder="인증번호 입력"
               class="flex-1 px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm"
             />
-            <p v-if="errors.email" class="mt-2 text-xs text-red-600">{{ errors.email }}</p>
             <button
               type="button"
               @click="verifyEmail"
