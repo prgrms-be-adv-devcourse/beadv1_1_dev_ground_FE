@@ -45,9 +45,22 @@
                   placeholder="닉네임"
                   class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
                   :class="{ 'border-red-500': errors.nickname }"
-                />
+                /><button
+                  type="button"
+                  @click="checkNickname"
+                  class="px-5 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors whitespace-nowrap text-sm"
+                >
+                  중복 확인
+                </button>
               </div>
               <p v-if="errors.nickname" class="mt-2 text-xs text-red-600">{{ errors.nickname }}</p>
+              <p
+                v-if="nicknameMessage"
+                class="mt-2 text-xs"
+                :class="nicknameMessageType === 'error' ? 'text-red-600' : 'text-green-600'"
+              >
+                {{ nicknameMessage }}
+              </p>
             </div>
           </div>
 
@@ -323,6 +336,9 @@ const isVerifying = ref(false)
 const emailVerified = ref(false)
 const codeMessage = ref('')
 const codeMessageType = ref('') // 'error' | 'success'
+const nicknameMessage = ref('')
+const nicknameMessageType = ref('') // 'error' | 'success'
+const isCheckingNickname = ref(false)
 
 const signupForm = reactive({
   name: '',
@@ -365,6 +381,39 @@ watch(
     signupForm.agreeAll = terms && privacy && marketing
   },
 )
+
+const checkNickname = async () => {
+  nicknameMessage.value = ''
+  nicknameMessageType.value = ''
+  isCheckingNickname.value = true
+  try {
+    const { data } = await axios.post(
+      '/api/users/isNicknameAvailable',
+      { nickname: signupForm.nickname },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+    if (data?.success) {
+      if (data.data === true) {
+        nicknameMessage.value = '사용 가능한 닉네임입니다.'
+        nicknameMessageType.value = 'success'
+      } else {
+        nicknameMessage.value = '이미 사용 중인 닉네임입니다.'
+        nicknameMessageType.value = 'error'
+      }
+    } else {
+      nicknameMessage.value = data?.msg || '닉네임 확인에 실패했습니다.'
+      nicknameMessageType.value = 'error'
+    }
+  } catch (e) {
+    nicknameMessage.value =
+      e.response?.data?.msg || e.message || '닉네임 확인 중 오류가 발생했습니다.'
+    nicknameMessageType.value = 'error'
+  } finally {
+    isCheckingNickname.value = false
+  }
+}
 
 const checkEmail = async () => {
   codeMessage.value = ''
