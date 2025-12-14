@@ -49,22 +49,22 @@
           </div>
 
           <!-- 로그인 유지 & 비밀번호 찾기 -->
-          <div class="flex items-center justify-between pt-1">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                v-model="loginForm.rememberMe"
-                type="checkbox"
-                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
-              />
-              <span class="text-sm text-gray-700">로그인 유지</span>
-            </label>
-            <a
-              href="#"
-              class="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-            >
-              비밀번호 찾기
-            </a>
-          </div>
+          <!--          <div class="flex items-center justify-between pt-1">-->
+          <!--            <label class="flex items-center gap-2 cursor-pointer">-->
+          <!--              <input-->
+          <!--                v-model="loginForm.rememberMe"-->
+          <!--                type="checkbox"-->
+          <!--                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"-->
+          <!--              />-->
+          <!--              <span class="text-sm text-gray-700">로그인 유지</span>-->
+          <!--            </label>-->
+          <!--            <a-->
+          <!--              href="#"-->
+          <!--              class="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"-->
+          <!--            >-->
+          <!--              비밀번호 찾기-->
+          <!--            </a>-->
+          <!--          </div>-->
 
           <!-- 로그인 버튼 -->
           <button
@@ -92,6 +92,14 @@
             </span>
             <span>{{ isLoading ? '로그인 중...' : '로그인' }}</span>
           </button>
+
+          <p
+            v-if="loginMessage"
+            class="mt-2 text-xs"
+            :class="loginMessageType === 'error' ? 'text-red-600' : 'text-green-600'"
+          >
+            {{ loginMessage }}
+          </p>
         </form>
 
         <!-- 구분선 -->
@@ -141,7 +149,9 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
+import router from '@/router/index.js'
+import axios from 'axios'
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()
@@ -160,6 +170,9 @@ const errors = reactive({
   email: '',
   password: '',
 })
+
+const loginMessage = ref('')
+const loginMessageType = ref('')
 
 // 폼 검증
 const validateForm = () => {
@@ -196,39 +209,35 @@ const handleLogin = async () => {
 
   isLoading.value = true
 
+  const login = {
+    email: loginForm.email,
+    password: loginForm.password,
+  }
+
   try {
-    // 실제 API 호출
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
+    const { data, headers } = await axios.post('/api/users/login', login, {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email: loginForm.email,
-        password: loginForm.password,
-        rememberMe: loginForm.rememberMe,
-      }),
     })
 
-    if (response.ok) {
-      const data = await response.json()
-
-      // 토큰 저장 (Header 컴포넌트의 saveTokens 메서드 사용)
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-
-      console.log('로그인 성공:', data)
-
-      // 메인 페이지로 이동
-      // router.push('/')
-      alert('로그인 성공!')
+    // Axios는 응답 헤더 키를 소문자로 내려주므로 객체 접근으로 읽는다.
+    const accessToken = headers?.access || headers?.['access']
+    if (accessToken) {
+      sessionStorage.setItem('accessToken', accessToken)
     } else {
-      const error = await response.json()
-      alert(error.message || '로그인에 실패했습니다.')
+      console.warn('응답 헤더/바디에 access 토큰이 없습니다.')
     }
+
+    console.log('로그인 성공:', data)
+
+    // 메인 페이지로 이동
+    await router.push('/')
+    alert('로그인 성공!')
   } catch (error) {
     console.error('로그인 오류:', error)
-    alert('로그인 중 오류가 발생했습니다.')
+    loginMessage.value = '아이디 또는 비밀번호가 틀렸습니다.'
+    loginMessageType.value = 'error'
   } finally {
     isLoading.value = false
   }
