@@ -55,3 +55,15 @@ export const suggestCompletion = (params = {}) => {
     },
   })
 }
+
+/**
+ * 연관 검색어 추천 API
+ */
+export const suggestRelated = (params = {}) => {
+  return axios.get('/api/products/suggest/related', {
+    params: {
+      keyword: params.keyword || '',
+      size: params.size || 5,
+    },
+  })
+}
