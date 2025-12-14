@@ -1,10 +1,10 @@
-import axios from './index'
+import axios from 'axios'
 
 /**
  * 상품 검색 API
  */
 export const searchProducts = (params = {}) => {
-  return axios.get('/products/search', {
+  return axios.get('/api/products/search', {
     params: {
       keyword: params.keyword || null,
       categoryIds: params.categoryIds || null,
@@ -29,7 +29,7 @@ export const recommendByUserView = (userCode = null, size = 10) => {
     headers['X-CODE'] = userCode
   }
 
-  return axios.get('/products/recommend/user-view', {
+  return axios.get('/api/products/recommend/user-view', {
     params: { size },
     headers,
   })
@@ -39,7 +39,7 @@ export const recommendByUserView = (userCode = null, size = 10) => {
  * 상품 상세 기반 상품 추천 API
  */
 export const recommendByProductDetail = (productCode, size = 10) => {
-  return axios.get(`/products/recommend/${productCode}`, {
+  return axios.get(`/api/products/recommend/${productCode}`, {
     params: { size },
   })
 }
@@ -48,7 +48,7 @@ export const recommendByProductDetail = (productCode, size = 10) => {
  * 검색어 자동완성 API
  */
 export const suggestCompletion = (params = {}) => {
-  return axios.get('/products/suggest/completion', {
+  return axios.get('/api/products/suggest/completion', {
     params: {
       prefix: params.prefix || '',
       size: params.size || 3,
