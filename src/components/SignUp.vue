@@ -521,8 +521,13 @@ const handleSignup = async () => {
       await router.push('/login')
     }
   } catch (err) {
-    const msg = err.response?.data?.message || '회원가입에 실패했습니다.'
-    alert(msg)
+    const { status, data } = err.response || {}
+    if (status === 400 || data?.message?.includes('이미 회원가입된')) {
+      alert('이미 가입된 이메일입니다. 로그인해주세요.')
+      await router.push('/login')
+      return
+    }
+    alert(data?.message || '회원가입에 실패했습니다.')
   } finally {
     isLoading.value = false
   }
