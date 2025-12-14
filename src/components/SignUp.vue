@@ -36,7 +36,7 @@
               <label for="nickname" class="block text-sm font-semibold text-gray-700 mb-2">
                 닉네임 <span class="text-red-500">*</span>
               </label>
-              <div class="relative">
+              <div class="flex gap-2">
                 <input
                   id="nickname"
                   v-model="signupForm.nickname"
