@@ -36,7 +36,7 @@
               <label for="nickname" class="block text-sm font-semibold text-gray-700 mb-2">
                 닉네임 <span class="text-red-500">*</span>
               </label>
-              <div class="relative">
+              <div class="flex gap-2">
                 <input
                   id="nickname"
                   v-model="signupForm.nickname"
@@ -45,7 +45,8 @@
                   placeholder="닉네임"
                   class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all text-sm"
                   :class="{ 'border-red-500': errors.nickname }"
-                /><button
+                />
+                <button
                   type="button"
                   @click="checkNickname"
                   class="px-5 py-3.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-xl transition-colors whitespace-nowrap text-sm"
