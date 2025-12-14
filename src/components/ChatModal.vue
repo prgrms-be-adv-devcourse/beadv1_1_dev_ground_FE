@@ -1,7 +1,9 @@
 <template>
   <teleport to="body">
     <div v-if="open" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
-      <div class="relative bg-white w-full max-w-5xl h-[600px] rounded-2xl shadow-2xl overflow-hidden flex">
+      <div
+        class="relative bg-white w-full max-w-5xl h-[600px] rounded-2xl shadow-2xl overflow-hidden flex"
+      >
         <button
           class="absolute top-3 right-3 w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center shadow-sm"
           @click="$emit('close')"
@@ -37,7 +39,10 @@
             >
               방 목록 불러오는 중...
             </div>
-            <div v-else-if="filteredRooms.length === 0" class="px-4 py-6 text-sm text-gray-500 text-center">
+            <div
+              v-else-if="filteredRooms.length === 0"
+              class="px-4 py-6 text-sm text-gray-500 text-center"
+            >
               방이 없습니다.
             </div>
             <ul v-else class="divide-y divide-gray-100">
@@ -96,7 +101,10 @@
             </div>
             <div class="text-xs text-gray-500">
               <span class="inline-flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full" :class="stompConnected ? 'bg-green-500' : 'bg-gray-300'"></span>
+                <span
+                  class="w-2 h-2 rounded-full"
+                  :class="stompConnected ? 'bg-green-500' : 'bg-gray-300'"
+                ></span>
                 {{ stompConnected ? '실시간 연결됨' : '연결 안 됨' }}
               </span>
             </div>
@@ -148,7 +156,11 @@
                     </div>
                     <div
                       class="w-full rounded-2xl px-3 py-2 shadow-sm"
-                      :class="msg.senderCode === userCode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'"
+                      :class="
+                        msg.senderCode === userCode
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      "
                     >
                       <div class="text-sm whitespace-pre-wrap break-words">{{ msg.message }}</div>
                       <div class="flex items-center justify-end gap-2 mt-1 text-[11px] opacity-70">
@@ -190,8 +202,9 @@
 </template>
 
 <script setup>
+import { api } from '@/api'
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import api from '@/api/index.js'
+api
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -233,7 +246,8 @@ const formatTime = (iso) => {
   }
 }
 
-const getProfile = (code) => userProfiles.value[code] || { nickname: code || '알 수 없음', profileImage: '' }
+const getProfile = (code) =>
+  userProfiles.value[code] || { nickname: code || '알 수 없음', profileImage: '' }
 
 const getProfileInitial = (code) => {
   const profile = getProfile(code)
@@ -286,7 +300,7 @@ const markAsRead = async (chatId) => {
       {},
       {
         headers: { 'X-CODE': userCode.value },
-      }
+      },
     )
   } catch (e) {
     console.error('읽음 처리 실패', e)
@@ -357,7 +371,9 @@ const connectStomp = async (chatId) => {
           const payload = JSON.parse(message.body)
           const readerCode = payload?.readerCode
           messages.value = messages.value.map((m) =>
-            m.senderCode && readerCode && m.senderCode !== readerCode ? { ...m, read: true, isRead: true } : m
+            m.senderCode && readerCode && m.senderCode !== readerCode
+              ? { ...m, read: true, isRead: true }
+              : m,
           )
         } catch (e) {
           console.warn('읽음 이벤트 파싱 실패', e)
@@ -381,7 +397,7 @@ const loadRooms = async () => {
     rooms.value = Array.isArray(data) ? data : data?.data || []
     emit(
       'unread-update',
-      rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0)
+      rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
     )
     prefetchProfiles(rooms.value.map((room) => getCounterpartCode(room)))
   } catch (e) {
@@ -409,7 +425,7 @@ const loadMessages = async (chatId) => {
     }
     emit(
       'unread-update',
-      rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0)
+      rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
     )
     await nextTick()
     scrollToBottom()
@@ -429,7 +445,13 @@ const selectRoom = async (room) => {
 }
 
 const sendMessage = () => {
-  if (!selectedRoom.value || !messageInput.value.trim() || !userCode.value.trim() || !stompClient.value) return
+  if (
+    !selectedRoom.value ||
+    !messageInput.value.trim() ||
+    !userCode.value.trim() ||
+    !stompClient.value
+  )
+    return
   try {
     stompClient.value.send(
       '/app/chat/messages',
@@ -438,7 +460,7 @@ const sendMessage = () => {
         chatId: selectedRoom.value.id,
         senderCode: userCode.value,
         message: messageInput.value.trim(),
-      })
+      }),
     )
     messageInput.value = ''
   } catch (e) {
@@ -456,7 +478,7 @@ watch(
       messages.value = []
       disconnectStomp()
     }
-  }
+  },
 )
 
 watch(
@@ -464,12 +486,12 @@ watch(
   () => {
     scrollToBottom()
   },
-  { deep: true, flush: 'post' }
+  { deep: true, flush: 'post' },
 )
 
 onMounted(async () => {
   // 기본 X-CODE를 미리 채워놓고 싶다면 여기 설정
-  const { data } = await api.get("/chat/test")
+  const { data } = await api.get('/chat/test')
   console.log(data)
   console.warn(data)
   console.error(data)
