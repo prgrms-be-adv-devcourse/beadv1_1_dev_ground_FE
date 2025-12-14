@@ -4,8 +4,14 @@ const routes = [
   {
     path: '/',
     children: [
+      { path: '/', name: 'product', component: () => import('@/components/Product.vue')},
       { path: '/login', name: 'login', component: () => import('@/components/Login.vue') },
       { path: '/signup', name: 'signup', component: () => import('@/components/SignUp.vue') },
+      { path: '/cart', name: 'cart', component: () => import('@/components/Cart.vue')},
+      { path: '/deposit', name: 'deposit', component: () => import('@/components/Deposit.vue')},
+      { path: '/profile', name: 'profile', component: () => import('@/components/Profile.vue')},
+      { path: '/productDetail/:id', name: 'productDetail', component: () => import('@/components/ProductDetail.vue')},
+      { path: '/register', name: 'productRegist', component: () => import('@/components/ProductRegist.vue')}
     ],
   },
 ]
