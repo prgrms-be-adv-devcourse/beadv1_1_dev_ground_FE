@@ -319,9 +319,10 @@
 <script setup>
 import router from '@/router'
 import { ref } from 'vue'
-// import { useRouter } from 'vue-router'
+import { addCartItem } from '@/api/cart'
+import { useCartStore } from '@/stores/cart'
 
-// const router = useRouter()
+const cartStore = useCartStore()
 
 // 상태 관리
 const selectedImage = ref('https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&h=800&fit=crop')
@@ -480,9 +481,16 @@ const toggleLike = () => {
   console.log('찜하기:', isLiked.value)
 }
 
-const addToCart = () => {
-  console.log('장바구니 추가:', { productId: product.value.id, quantity: quantity.value })
-  alert('장바구니에 추가되었습니다.')
+const addToCart = async () => {
+  try {
+    // 상품 ID와 수량을 API에 전달
+    await addCartItem(product.value.id) 
+    await cartStore.getCart() // 헤더 카운트 업데이트
+    alert('장바구니에 추가되었습니다.')
+  } catch (error) {
+    console.error('장바구니 추가 실패:', error)
+    alert('장바구니 추가에 실패했습니다.')
+  }
 }
 
 const buyNow = () => {

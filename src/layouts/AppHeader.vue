@@ -152,8 +152,14 @@
 
 <script setup>
 import router from '@/router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue' // computed removed
+import { useCartStore } from '@/stores/cart' // Import Store
 import ChatModal from '@/components/ChatModal.vue'
+
+import { storeToRefs } from 'pinia'
+
+const cartStore = useCartStore()
+const { count: cartCount } = storeToRefs(cartStore)
 
 // 상태 관리
 const showMobileMenu = ref(false)
@@ -163,22 +169,15 @@ const showChatModal = ref(false)
 const accessToken = ref(null)
 const refreshToken = ref(null)
 const userName = ref('')
-const cartCount = ref(3)
 const unreadChatCount = ref(0)
 
 const isLoggedIn = ref(true)
-
-// 로그인 여부 계산
-// const isLoggedIn = computed(() => {
-//   // return !!accessToken.value
-//   return true
-// })
 
 // 메서드
 const goToCart = () => {
   console.log('장바구니로 이동')
   showMobileMenu.value = false
-  // router.push('/cart')
+  router.push('cart')
 }
 
 const goToMyPage = () => {
@@ -256,6 +255,7 @@ onMounted(() => {
   loadTokens()
   if (isLoggedIn.value) {
     fetchUserInfo()
+    cartStore.getCartInfo() // Use store action
   }
 })
 

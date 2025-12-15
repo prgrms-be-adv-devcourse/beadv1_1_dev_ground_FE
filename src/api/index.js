@@ -10,7 +10,7 @@ const openApi = axios.create({
 const api = axios.create({
   baseURL: '/api',
   headers: {
-    'X-CODE': sessionStorage.getItem('X-CODE'),
+    'access': sessionStorage.getItem('access'),
     'Content-Type': 'application/json',
   },
 })
