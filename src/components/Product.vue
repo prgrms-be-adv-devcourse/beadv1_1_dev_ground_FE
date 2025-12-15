@@ -1,17 +1,18 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- 상단 검색바 (sticky) -->
+    <!-- 검색바 (sticky) -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="relative">
+        <!-- ✅ search-container 클래스 추가 -->
+        <div class="search-container relative">
           <input
             v-model="searchKeyword"
             @input="handleSearchInput"
             @keyup.enter="handleSearchSubmit"
-            @focus="showSuggestions = true"
+            @focus="handleSearchFocus"
             type="text"
             placeholder="검색어를 입력해주세요"
-            class="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base focus:outline-none focus:border-indigo-600 transition-colors"
+            class="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base focus:outline-none focus:border-indigo-600"
           />
           <button
             v-if="searchKeyword"
@@ -28,7 +29,7 @@
           </button>
           <button
             @click="handleSearchSubmit"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-600 hover:text-indigo-700"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-600"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -40,16 +41,16 @@
             </svg>
           </button>
 
-          <!-- 자동완성 드롭다운 -->
+          <!-- ✅ 자동완성 드롭다운 -->
           <div
             v-if="showSuggestions && suggestions.length > 0"
-            class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+            class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[60] max-h-60 overflow-y-auto"
           >
             <button
               v-for="(suggestion, index) in suggestions"
               :key="index"
               @click="selectSuggestion(suggestion)"
-              class="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+              class="w-full px-4 py-3 text-left hover:bg-indigo-50 border-b border-gray-100 last:border-b-0 first:rounded-t-lg last:rounded-b-lg transition-colors cursor-pointer"
             >
               <span class="text-sm text-gray-700">{{ suggestion }}</span>
             </button>
@@ -63,7 +64,7 @@
             v-for="(keyword, index) in relatedKeywords"
             :key="index"
             @click="searchByRelatedKeyword(keyword)"
-            class="px-3 py-1 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 text-xs rounded-full transition-colors border border-gray-200 hover:border-indigo-300"
+            class="px-3 py-1 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 text-xs rounded-full border border-gray-200 hover:border-indigo-300"
           >
             {{ keyword }}
           </button>
@@ -71,11 +72,11 @@
       </div>
     </div>
 
-    <!-- 추천 상품 슬라이딩 섹션 -->
+    <!-- 추천 상품 슬라이더 -->
     <div class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h2 class="text-lg font-bold text-gray-900 mb-4">
-          {{ userCode ? '회원님을 위한 추천' : '인기 상품 추천' }}
+          🔥 {{ userCode ? '회원님을 위한 추천' : '인기 상품 추천' }}
         </h2>
 
         <div v-if="loadingRecommend" class="flex justify-center py-8">
@@ -86,21 +87,32 @@
 
         <div v-else-if="recommendedProducts.length > 0" class="relative overflow-hidden">
           <div
-            class="flex gap-4 transition-transform duration-500 ease-linear"
-            :style="{ transform: `translateX(-${slideOffset}px)` }"
+            class="flex gap-4"
+            :style="{ transform: `translateX(-${slideOffset}px)`, transition: 'none' }"
           >
             <div
               v-for="(item, index) in slidingRecommendedProducts"
-              :key="`recommend-${index}`"
+              :key="`rec-${index}`"
               @click="goToProduct(item.productCode)"
-              class="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer transform hover:scale-105"
+              class="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
             >
-              <img
-                :src="item.thumbnailUrl || 'https://via.placeholder.com/160'"
-                :alt="item.title"
-                class="w-full h-40 object-cover"
-                @error="handleImageError"
-              />
+              <!-- ✅ 수정: placeholder 제거, 기본 이미지로 대체 -->
+              <div class="w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="item.thumbnailUrl"
+                  :src="item.thumbnailUrl"
+                  :alt="item.title"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                />
+                <svg v-else class="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
               <div class="p-3">
                 <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
                   {{ item.title }}
@@ -125,7 +137,7 @@
               d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
             />
           </svg>
-          <p class="text-gray-600 text-base">상품을 조회하시면 맞춤 상품을 추천해드립니다!</p>
+          <p class="text-gray-600">상품을 조회하시면 맞춤 상품을 추천해드립니다!</p>
         </div>
       </div>
     </div>
@@ -133,17 +145,17 @@
     <!-- 메인 콘텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="flex gap-6">
-        <!-- 왼쪽 필터 사이드바 -->
+        <!-- 왼쪽 필터 -->
         <aside class="hidden lg:block w-64 flex-shrink-0">
           <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24 space-y-6">
-            <!-- 카테고리 필터 -->
+            <!-- 카테고리 -->
             <div>
               <h3 class="text-sm font-semibold text-gray-900 mb-3">카테고리</h3>
               <div class="space-y-1 max-h-96 overflow-y-auto">
                 <div v-for="category in rootCategories" :key="category.id">
                   <button
                     @click="toggleCategory(category.id, 0)"
-                    class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                    class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg text-left"
                     :class="{
                       'bg-indigo-50 text-indigo-700 font-semibold': isSelectedCategory(
                         category.id,
@@ -169,7 +181,7 @@
                     <div v-for="child in selectedCategories[0].children" :key="child.id">
                       <button
                         @click="toggleCategory(child.id, 1)"
-                        class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                        class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg text-left"
                         :class="{
                           'bg-indigo-50 text-indigo-700 font-semibold': isSelectedCategory(
                             child.id,
@@ -196,7 +208,7 @@
                           v-for="child3 in selectedCategories[1].children"
                           :key="child3.id"
                           @click="toggleCategory(child3.id, 2)"
-                          class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors text-left text-xs"
+                          class="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg text-left text-xs"
                           :class="{
                             'bg-indigo-50 text-indigo-700 font-semibold': isSelectedCategory(
                               child3.id,
@@ -225,7 +237,7 @@
             <div>
               <h3 class="text-sm font-semibold text-gray-900 mb-3">가격 범위</h3>
 
-              <div class="space-y-2">
+              <div class="space-y-3">
                 <div class="flex items-center gap-2">
                   <input
                     v-model.number="minPrice"
@@ -242,16 +254,16 @@
                   />
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="range in priceRanges"
                     :key="range.label"
                     @click="selectPriceRange(range)"
-                    class="px-2 py-1.5 text-xs border rounded transition-all text-center"
+                    class="px-2.5 py-1 text-xs rounded-full transition-all"
                     :class="
                       isPriceRangeActive(range)
-                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold'
-                        : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
+                        ? 'bg-indigo-600 text-white font-medium'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     "
                   >
                     {{ range.label }}
@@ -260,7 +272,7 @@
 
                 <button
                   @click="applyManualPriceFilter"
-                  class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                  class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
                 >
                   적용
                 </button>
@@ -298,20 +310,39 @@
             </select>
           </div>
 
+          <!-- 상품 카드 그리드 -->
           <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             <div
               v-for="product in products"
               :key="product.productCode"
               @click="goToProduct(product.productCode)"
-              class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer transform hover:scale-105"
+              class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
             >
               <div class="relative">
-                <img
-                  :src="product.thumbnailUrl || 'https://via.placeholder.com/300'"
-                  :alt="product.title"
-                  class="w-full h-48 object-cover"
-                  @error="handleImageError"
-                />
+                <!-- ✅ 수정: placeholder 제거 -->
+                <div
+                  class="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden"
+                >
+                  <img
+                    v-if="product.thumbnailUrl"
+                    :src="product.thumbnailUrl"
+                    :alt="product.title"
+                    class="w-full h-full object-cover"
+                    @error="handleImageError"
+                  />
+                  <svg
+                    v-else
+                    class="w-16 h-16 text-gray-300"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
                 <div v-if="product.productStatus" class="absolute bottom-2 left-2">
                   <span
                     class="px-2 py-1 text-white text-xs font-bold rounded shadow-lg"
@@ -326,15 +357,10 @@
                 </div>
               </div>
               <div class="p-4">
-                <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 h-10">
                   {{ product.title }}
                 </h3>
-                <p class="text-lg font-bold text-indigo-600 mb-2">
-                  {{ formatPrice(product.price) }}원
-                </p>
-                <div class="text-xs text-gray-500">
-                  <span>{{ product.categoryName }}</span>
-                </div>
+                <p class="text-lg font-bold text-indigo-600">{{ formatPrice(product.price) }}원</p>
               </div>
             </div>
           </div>
@@ -365,7 +391,7 @@
           <div v-if="!loading && hasMore" class="mt-8 text-center">
             <button
               @click="loadMore"
-              class="px-8 py-3 bg-white border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 rounded-xl font-semibold transition-colors"
+              class="px-8 py-3 bg-white border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 rounded-xl font-semibold"
             >
               더 보기
             </button>
@@ -399,14 +425,8 @@ const pageSize = ref(20)
 const userCode = ref(sessionStorage.getItem('X-CODE') || null)
 
 const sortOption = ref('createdAt-desc')
-const sortBy = computed(() => {
-  const parts = sortOption.value.split('-')
-  return parts[0]
-})
-const sortDirection = computed(() => {
-  const parts = sortOption.value.split('-')
-  return parts[1]
-})
+const sortBy = computed(() => sortOption.value.split('-')[0])
+const sortDirection = computed(() => sortOption.value.split('-')[1])
 
 const rootCategories = ref([])
 const selectedCategories = ref([])
@@ -423,10 +443,19 @@ const CARD_WIDTH = 176
 
 const searchKeyword = ref('')
 const committedKeyword = ref('')
+
+// ✅ [변경] suggestions는 "문자열 배열"로 유지하되,
+// 백엔드 응답(ProductSuggestResponse.suggestions: SuggestOption[])에서 text만 뽑아서 채움
 const suggestions = ref([])
 const showSuggestions = ref(false)
 const relatedKeywords = ref([])
 let suggestionTimeout = null
+
+// ✅ [변경] 디바운스 시간 (0.5~1초 범위)
+const SUGGEST_DEBOUNCE_MS = 0
+
+// ✅ [변경] 레이스 컨디션 방지용 시퀀스 (빠르게 입력하면 이전 응답 무시)
+let suggestRequestSeq = 0
 
 const minPrice = ref(null)
 const maxPrice = ref(null)
@@ -453,8 +482,9 @@ const getProductStatusText = (status) => {
   return statusMap[status] || status
 }
 
-const handleImageError = (event) => {
-  event.target.src = 'https://via.placeholder.com/300'
+// ✅ 이미지 에러 처리 (placeholder 대신 숨김)
+const handleImageError = (e) => {
+  e.target.style.display = 'none'
 }
 
 const updateURL = () => {
@@ -487,71 +517,149 @@ const loadFromURL = () => {
   if (query.sort) sortOption.value = query.sort
 }
 
-const handleSearchInput = () => {
-  if (suggestionTimeout) clearTimeout(suggestionTimeout)
+// ✅ [변경] 타이핑 멈추면 자동완성 호출 (0.7s debounce)
+// - prefix 파라미터 ❌ -> keyword ✅
+// - 응답은 ProductSuggestResponse -> suggestions[].text만 사용
+const handleSearchInput = async () => {
+  // if (suggestionTimeout) clearTimeout(suggestionTimeout)
 
-  if (searchKeyword.value.trim().length === 0) {
+  const keyword = searchKeyword.value.trim()
+  console.log(keyword)
+  // 빈 값이면 초기화
+  if (keyword.length === 0) {
     suggestions.value = []
     showSuggestions.value = false
     return
   }
 
-  suggestionTimeout = setTimeout(async () => {
-    try {
-      const response = await suggestCompletion({ prefix: searchKeyword.value, size: 3 })
-      if (response.data.success) {
-        suggestions.value = response.data.data || []
-        showSuggestions.value = suggestions.value.length > 0
-      }
-    } catch (error) {
-      console.error('자동완성 조회 실패:', error)
+  try {
+    // ✅ [변경] 백엔드 요청 파라미터 이름에 맞춤: keyword
+    const response = await suggestCompletion({
+      keyword, // ✅ 중요
+      size: 5,
+      // (선택) 카테고리 선택 중이면 그 범위 내 자동완성
+      // categoryId: currentCategoryId.value ?? null,
+      // includeSold: false, // 필요하면 명시
+    })
+    console.log('응답:', response)
+
+    // 최신 요청이 아니면 응답 무시
+    // if (mySeq !== suggestRequestSeq) return
+
+    if (!response?.data?.success) {
+      suggestions.value = []
+      showSuggestions.value = false
+      return
     }
-  }, 500)
+
+    const data = response.data.data
+
+    // ✅ [변경] ProductSuggestResponse.suggestions: SuggestOption[]
+    // -> text만 뽑아서 문자열 배열로 변환
+    const texts = Array.isArray(data?.suggestions)
+      ? data.suggestions.map((o) => o?.text).filter(Boolean)
+      : []
+
+    suggestions.value = texts
+    showSuggestions.value = suggestions.value.length > 0 && searchKeyword.value.trim().length > 0
+  } catch (error) {
+    console.error('[자동완성] API 에러:', error)
+    suggestions.value = []
+    showSuggestions.value = false
+  }
+
+  // (선택) 너무 짧으면 호출 안 하려면 활성화
+  // if (keyword.length < 1) return
+
+  // const mySeq = ++suggestRequestSeq // ✅ [변경] 이번 요청의 시퀀스
+
+  // suggestionTimeout = setTimeout(async () => {
+  //   // 디바운스 타이밍 이후에도 입력이 바뀌었으면 스킵
+  //   if (mySeq !== suggestRequestSeq) return
+  // }, SUGGEST_DEBOUNCE_MS)
 }
 
-const selectSuggestion = (suggestion) => {
-  searchKeyword.value = suggestion
-  committedKeyword.value = suggestion
-  showSuggestions.value = false
-  applyFilters()
-}
-
-const handleSearchSubmit = async () => {
-  committedKeyword.value = searchKeyword.value
-  showSuggestions.value = false
-  await applyFilters()
-
-  if (committedKeyword.value) {
-    fetchRelatedKeywords()
+const handleSearchFocus = () => {
+  if (suggestions.value.length > 0 && searchKeyword.value.trim()) {
+    showSuggestions.value = true
   }
 }
 
-const clearSearch = () => {
+// ✅ [변경] 드롭다운 클릭 시: 검색어 반영 + 검색 실행 + 연관검색어 호출
+const selectSuggestion = async (suggestion) => {
+  searchKeyword.value = suggestion
+  committedKeyword.value = suggestion
+
+  suggestions.value = []
+  showSuggestions.value = false
+
+  await applyFilters()
+  await fetchRelatedKeywords()
+}
+
+const handleSearchSubmit = async () => {
+  committedKeyword.value = searchKeyword.value.trim()
+  showSuggestions.value = false
+
+  await applyFilters()
+
+  if (committedKeyword.value) {
+    await fetchRelatedKeywords()
+  }
+}
+
+const clearSearch = async () => {
   searchKeyword.value = ''
   committedKeyword.value = ''
   suggestions.value = []
   showSuggestions.value = false
   relatedKeywords.value = []
-  applyFilters()
+
+  await applyFilters()
 }
 
+// ✅ [변경] 연관검색어 응답도 ProductSuggestResponse이므로 suggestions[].text로 파싱
 const fetchRelatedKeywords = async () => {
+  if (!committedKeyword.value) {
+    relatedKeywords.value = []
+    return
+  }
+
   try {
-    const response = await suggestRelated({ keyword: committedKeyword.value, size: 5 })
-    if (response.data.success) {
-      relatedKeywords.value = response.data.data || []
+    const response = await suggestRelated({
+      keyword: committedKeyword.value,
+      size: 5,
+      // (선택) categoryId: currentCategoryId.value ?? null,
+      // includeSold: false,
+    })
+
+    if (!response?.data?.success) {
+      relatedKeywords.value = []
+      return
     }
+
+    const data = response.data.data
+    const texts = Array.isArray(data?.suggestions)
+      ? data.suggestions.map((o) => o?.text).filter(Boolean)
+      : []
+
+    // 중복 제거 + 자기 자신 키워드 제거(선택)
+    const uniq = [...new Set(texts)].filter((t) => t !== committedKeyword.value)
+
+    relatedKeywords.value = uniq
   } catch (error) {
     console.error('연관 검색어 조회 실패:', error)
+    relatedKeywords.value = []
   }
 }
 
-const searchByRelatedKeyword = (keyword) => {
+const searchByRelatedKeyword = async (keyword) => {
   searchKeyword.value = keyword
   committedKeyword.value = keyword
   relatedKeywords.value = []
-  applyFilters()
-  fetchRelatedKeywords()
+
+  await applyFilters()
+  await fetchRelatedKeywords()
 }
 
 const isPriceRangeActive = (range) => {
@@ -678,18 +786,16 @@ const fetchProducts = async (reset = false) => {
 
     if (currentCategoryId.value) params.categoryIds = [currentCategoryId.value]
     if (committedKeyword.value) params.keyword = committedKeyword.value
-    if (minPrice.value) params.minPrice = minPrice.value
-    if (maxPrice.value) params.maxPrice = maxPrice.value
+    if (minPrice.value !== null && minPrice.value !== '') params.minPrice = minPrice.value
+    if (maxPrice.value !== null && maxPrice.value !== '') params.maxPrice = maxPrice.value
 
     const response = await searchProducts(params)
 
     if (response.data.success) {
       const pageData = response.data.data
-      products.value = reset
-        ? pageData.content || []
-        : [...products.value, ...(pageData.content || [])]
-      totalCount.value = pageData.totalElements || 0
-      hasMore.value = !pageData.last
+      products.value = reset ? pageData.items || [] : [...products.value, ...(pageData.items || [])]
+      totalCount.value = pageData.totalItems || 0
+      hasMore.value = pageData.currentPageNumber < pageData.totalPages
       if (reset) currentPage.value = 1
     }
   } catch (error) {
@@ -744,18 +850,23 @@ const goToProduct = (productCode) => {
   router.push(`/productdetail/${productCode}`)
 }
 
+// ✅ 외부 클릭 시 드롭다운 닫기
 const handleClickOutside = (e) => {
-  if (!e.target.closest('.relative')) {
+  const searchContainer = e.target.closest('.search-container')
+  if (!searchContainer) {
     showSuggestions.value = false
   }
 }
 
 onMounted(async () => {
   loadFromURL()
+  searchKeyword.value = ''
   await Promise.all([fetchRootCategories(), fetchProducts(true), fetchRecommendedProducts()])
+
   if (committedKeyword.value) {
     fetchRelatedKeywords()
   }
+
   startSliding()
   document.addEventListener('click', handleClickOutside)
 })
@@ -766,6 +877,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
+// URL 동기화
 watch(
   () => route.query,
   () => {

@@ -47,12 +47,12 @@ export const recommendByProductDetail = (productCode, size = 10) => {
 /**
  * 검색어 자동완성 API
  */
-export const suggestCompletion = (params = {}) => {
-  return axios.get('/api/products/suggest/completion', {
-    params: {
-      prefix: params.prefix || '',
-      size: params.size || 3,
-    },
+export const suggestCompletion = (params) => {
+  return axios.get(`api/products/suggest/completion?keyword=${params.keyword}`, {
+    // params: {
+    //   prefix: params.prefix || '',
+    //   size: params.size || 3,
+    // },
   })
 }
 
