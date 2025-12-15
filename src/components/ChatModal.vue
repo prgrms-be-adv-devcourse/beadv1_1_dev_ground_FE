@@ -395,6 +395,7 @@ const loadRooms = async () => {
       params: { status: 'OPEN' },
     })
     rooms.value = Array.isArray(data) ? data : data?.data || []
+    console.log(data)
     emit(
       'unread-update',
       rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
@@ -428,7 +429,7 @@ const loadMessages = async (chatId) => {
       rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
     )
     await nextTick()
-    scrollToBottom()
+    // scrollToBottom()
   } catch (e) {
     console.error('메시지 불러오기 실패', e)
   } finally {
@@ -442,6 +443,8 @@ const selectRoom = async (room) => {
   prefetchProfiles([room.sellerCode, room.buyerCode, userCode.value])
   await loadMessages(room.id)
   connectStomp(room.id)
+  scrollToBottom()
+
 }
 
 const sendMessage = () => {
