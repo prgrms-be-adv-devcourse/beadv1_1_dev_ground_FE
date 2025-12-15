@@ -149,12 +149,12 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import router from '@/router/index.js'
 import axios from 'axios'
-// import { useRouter } from 'vue-router'
 
-// const router = useRouter()
+const route = useRoute()
 
 // 상태 관리
 const isLoading = ref(false)
@@ -250,16 +250,54 @@ const handleKakaoLogin = async () => {
     const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`
 
     window.location.href = kakaoAuthUrl
-
-    // 또는 백엔드에서 카카오 로그인 URL을 제공하는 경우
-    // const response = await fetch('/api/auth/kakao')
-    // const data = await response.json()
-    // window.location.href = data.authUrl
   } catch (error) {
     console.error('카카오 로그인 오류:', error)
     alert('카카오 로그인 중 오류가 발생했습니다.')
   }
 }
+
+const kakaoLogin = async (code) => {
+  try {
+    // ✅ (A) code를 "쿼리스트링(RequestParam)"으로 보내는 방식
+    const { headers } = await axios.get(
+      `/api/users/kakaoLogin?code=${encodeURIComponent(code)}`,
+      null,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true, // 쿠키(리프레시 등) 쓰면 필요
+      },
+    )
+
+    // access 토큰 헤더로 받는다면 (네 일반 로그인 로직과 동일)
+    const accessToken = headers?.access || headers?.['access']
+    if (accessToken) sessionStorage.setItem('accessToken', accessToken)
+
+    // ✅ code 남아있으면 새로고침 때 또 호출되니까 제거
+    await router.replace({ path: route.path, query: {} })
+
+    alert('카카오 로그인 성공!')
+    await router.push('/')
+  } catch (e) {
+    console.error(e)
+    alert('카카오 로그인 처리 중 오류가 발생했습니다.')
+    await router.replace({ path: route.path, query: {} })
+  }
+}
+
+onMounted(() => {
+  const code = route.query.code
+  const error = route.query.error
+
+  if (error) {
+    alert('카카오 로그인이 취소/실패했습니다.')
+    router.replace({ path: route.path, query: {} })
+    return
+  }
+
+  if (typeof code === 'string' && code) {
+    kakaoLogin(code)
+  }
+})
 </script>
 
 <style scoped>
