@@ -45,14 +45,19 @@ export const recommendByProductDetail = (productCode, size = 10) => {
 }
 
 /**
- * 검색어 자동완성 API
+ * ✅ 검색어 자동완성 API
+ * - 쿼리스트링 직접 조립 ❌
+ * - axios params ✅ (자동 인코딩)
+ * - 앞에 '/' 반드시 ✅
  */
-export const suggestCompletion = (params) => {
-  return axios.get(`api/products/suggest/completion?keyword=${params.keyword}`, {
-    // params: {
-    //   prefix: params.prefix || '',
-    //   size: params.size || 3,
-    // },
+export const suggestCompletion = (params = {}) => {
+  return axios.get('/api/products/suggest/completion', {
+    params: {
+      keyword: params.keyword || '', // ✅ [중요] 백엔드 파라미터명 keyword
+      size: params.size || 5,
+      categoryId: params.categoryId ?? null,
+      includeSold: params.includeSold ?? false,
+    },
   })
 }
 

@@ -8,8 +8,11 @@
           <input
             v-model="searchKeyword"
             @input="handleSearchInput"
+            @compositionupdate="handleSearchInput"
             @keyup.enter="handleSearchSubmit"
             @focus="handleSearchFocus"
+            @compositionstart="handleCompositionStart"
+            @compositionend="handleCompositionEnd"
             type="text"
             placeholder="검색어를 입력해주세요"
             class="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base focus:outline-none focus:border-indigo-600"
@@ -403,7 +406,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   searchProducts,
@@ -452,10 +455,12 @@ const relatedKeywords = ref([])
 let suggestionTimeout = null
 
 // ✅ [변경] 디바운스 시간 (0.5~1초 범위)
-const SUGGEST_DEBOUNCE_MS = 0
+const SUGGEST_DEBOUNCE_MS = 700
 
 // ✅ [변경] 레이스 컨디션 방지용 시퀀스 (빠르게 입력하면 이전 응답 무시)
 let suggestRequestSeq = 0
+
+const isComposing = ref(false)
 
 const minPrice = ref(null)
 const maxPrice = ref(null)
@@ -517,13 +522,24 @@ const loadFromURL = () => {
   if (query.sort) sortOption.value = query.sort
 }
 
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+const handleCompositionEnd = (e) => {
+  isComposing.value = false
+  handleSearchInput(e)
+}
+
 // ✅ [변경] 타이핑 멈추면 자동완성 호출 (0.7s debounce)
 // - prefix 파라미터 ❌ -> keyword ✅
 // - 응답은 ProductSuggestResponse -> suggestions[].text만 사용
-const handleSearchInput = async () => {
-  // if (suggestionTimeout) clearTimeout(suggestionTimeout)
+const handleSearchInput = (e) => {
+  if (suggestionTimeout) clearTimeout(suggestionTimeout)
 
-  const keyword = searchKeyword.value.trim()
+  const raw = (e?.target?.value ?? searchKeyword.value ?? '').toString()
+  const keyword = raw.trim()
+
   console.log(keyword)
   // 빈 값이면 초기화
   if (keyword.length === 0) {
@@ -532,51 +548,45 @@ const handleSearchInput = async () => {
     return
   }
 
-  try {
-    // ✅ [변경] 백엔드 요청 파라미터 이름에 맞춤: keyword
-    const response = await suggestCompletion({
-      keyword, // ✅ 중요
-      size: 5,
-      // (선택) 카테고리 선택 중이면 그 범위 내 자동완성
-      // categoryId: currentCategoryId.value ?? null,
-      // includeSold: false, // 필요하면 명시
-    })
-    console.log('응답:', response)
+  const mySeq = ++suggestRequestSeq
 
-    // 최신 요청이 아니면 응답 무시
-    // if (mySeq !== suggestRequestSeq) return
+  suggestionTimeout = setTimeout(async () => {
+    if (mySeq !== suggestRequestSeq) return
 
-    if (!response?.data?.success) {
+    try {
+      // ✅ [변경] 백엔드 요청 파라미터 이름에 맞춤: keyword
+      const response = await suggestCompletion({
+        keyword, // ✅ 중요
+        size: 5,
+        categoryId: currentCategoryId.value ?? null,
+        includeSold: false, // 필요하면 명시
+      })
+      console.log('응답:', response)
+
+      if (mySeq !== suggestRequestSeq) return
+
+      if (!response?.data?.success) {
+        suggestions.value = []
+        showSuggestions.value = false
+        return
+      }
+
+      const data = response.data.data
+
+      // ✅ [변경] ProductSuggestResponse.suggestions: SuggestOption[]
+      // -> text만 뽑아서 문자열 배열로 변환
+      const texts = Array.isArray(data?.suggestions)
+        ? data.suggestions.map((o) => o?.text).filter(Boolean)
+        : []
+
+      suggestions.value = texts
+      showSuggestions.value = suggestions.value.length > 0 && !!keyword
+    } catch (error) {
+      console.error('[자동완성] API 에러:', error)
       suggestions.value = []
       showSuggestions.value = false
-      return
     }
-
-    const data = response.data.data
-
-    // ✅ [변경] ProductSuggestResponse.suggestions: SuggestOption[]
-    // -> text만 뽑아서 문자열 배열로 변환
-    const texts = Array.isArray(data?.suggestions)
-      ? data.suggestions.map((o) => o?.text).filter(Boolean)
-      : []
-
-    suggestions.value = texts
-    showSuggestions.value = suggestions.value.length > 0 && searchKeyword.value.trim().length > 0
-  } catch (error) {
-    console.error('[자동완성] API 에러:', error)
-    suggestions.value = []
-    showSuggestions.value = false
-  }
-
-  // (선택) 너무 짧으면 호출 안 하려면 활성화
-  // if (keyword.length < 1) return
-
-  // const mySeq = ++suggestRequestSeq // ✅ [변경] 이번 요청의 시퀀스
-
-  // suggestionTimeout = setTimeout(async () => {
-  //   // 디바운스 타이밍 이후에도 입력이 바뀌었으면 스킵
-  //   if (mySeq !== suggestRequestSeq) return
-  // }, SUGGEST_DEBOUNCE_MS)
+  }, SUGGEST_DEBOUNCE_MS)
 }
 
 const handleSearchFocus = () => {
