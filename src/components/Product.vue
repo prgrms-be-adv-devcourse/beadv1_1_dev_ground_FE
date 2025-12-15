@@ -462,6 +462,15 @@ let suggestRequestSeq = 0
 
 const isComposing = ref(false)
 
+let suggestAbortController = null
+
+const abortSuggestRequest = () => {
+  if (suggestAbortController) {
+    suggestAbortController.abort()
+    suggestAbortController = null
+  }
+}
+
 const minPrice = ref(null)
 const maxPrice = ref(null)
 const priceRanges = [
@@ -543,6 +552,7 @@ const handleSearchInput = (e) => {
   console.log(keyword)
   // 빈 값이면 초기화
   if (keyword.length === 0) {
+    abortSuggestRequest()
     suggestions.value = []
     showSuggestions.value = false
     return
@@ -553,6 +563,9 @@ const handleSearchInput = (e) => {
   suggestionTimeout = setTimeout(async () => {
     if (mySeq !== suggestRequestSeq) return
 
+    abortSuggestRequest()
+    suggestAbortController = new AbortController()
+
     try {
       // ✅ [변경] 백엔드 요청 파라미터 이름에 맞춤: keyword
       const response = await suggestCompletion({
@@ -560,6 +573,7 @@ const handleSearchInput = (e) => {
         size: 5,
         categoryId: currentCategoryId.value ?? null,
         includeSold: false, // 필요하면 명시
+        signal: suggestAbortController.signal,
       })
       console.log('응답:', response)
 
@@ -582,6 +596,8 @@ const handleSearchInput = (e) => {
       suggestions.value = texts
       showSuggestions.value = suggestions.value.length > 0 && !!keyword
     } catch (error) {
+      if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') return
+
       console.error('[자동완성] API 에러:', error)
       suggestions.value = []
       showSuggestions.value = false
@@ -624,6 +640,8 @@ const clearSearch = async () => {
   suggestions.value = []
   showSuggestions.value = false
   relatedKeywords.value = []
+
+  abortSuggestRequest()
 
   await applyFilters()
 }
@@ -884,6 +902,7 @@ onMounted(async () => {
 onUnmounted(() => {
   stopSliding()
   if (suggestionTimeout) clearTimeout(suggestionTimeout)
+  abortSuggestRequest()
   document.removeEventListener('click', handleClickOutside)
 })
 

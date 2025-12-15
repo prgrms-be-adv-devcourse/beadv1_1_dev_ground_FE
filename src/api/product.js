@@ -51,6 +51,8 @@ export const recommendByProductDetail = (productCode, size = 10) => {
  * - 앞에 '/' 반드시 ✅
  */
 export const suggestCompletion = (params = {}) => {
+  const { signal } = params
+
   return axios.get('/api/products/suggest/completion', {
     params: {
       keyword: params.keyword || '', // ✅ [중요] 백엔드 파라미터명 keyword
@@ -58,6 +60,7 @@ export const suggestCompletion = (params = {}) => {
       categoryId: params.categoryId ?? null,
       includeSold: params.includeSold ?? false,
     },
+    signal,
   })
 }
 
