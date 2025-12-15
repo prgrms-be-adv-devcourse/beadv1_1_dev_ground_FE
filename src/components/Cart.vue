@@ -4,8 +4,67 @@
     <!-- 헤더 -->
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">장바구니</h1>
-        <p class="text-sm text-gray-600">총 {{ cartItems.length }}개의 상품</p>
+        <p class="text-sm text-gray-600">총 {{ cartCount }}개의 상품</p>
+    </div>
+
+    <div class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">
+          '회원님을 위한 추천'
+        </h2>
+
+        <div v-if="loadingRecommend" class="flex justify-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"
+          ></div>
+        </div>
+
+        <div v-else-if="recommendCartItems.length > 0" class="relative overflow-hidden">
+          <div
+            class="flex gap-4 transition-transform duration-500 ease-linear"
+            :style="{ transform: `translateX(-${slideOffset}px)` }"
+          >
+            <div
+              v-for="(item, index) in slidingRecommendCartItems"
+              :key="`recommend-${index}`"
+              @click="goToProduct(item.productCode)"
+              class="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer transform hover:scale-105"
+            >
+              <img
+                :src="item.thumbnail || 'https://via.placeholder.com/160'"
+                :alt="item.productName"
+                class="w-full h-40 object-cover"
+                @error="handleImageError"
+              />
+              <div class="p-3">
+                <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                  {{ item.productName }}
+                </h3>
+                <p class="text-base font-bold text-indigo-600">{{ formatPrice(item.productPrice) }}원</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="bg-gray-50 rounded-lg p-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-gray-400 mb-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+            />
+          </svg>
+          <p class="text-gray-600 text-base">장바구니에 상품을 추가하시면 맞춤 상품을 추천해드립니다!</p>
+        </div>
       </div>
+    </div>
+
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- 장바구니 상품 목록 -->
@@ -16,6 +75,7 @@
               <input
                 v-model="selectAll"
                 @change="toggleSelectAll"
+                :disabled="cartCount === 0"
                 type="checkbox"
                 class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
               />
@@ -31,7 +91,7 @@
           </div>
 
           <!-- 상품이 없을 때 -->
-          <div v-if="cartItems.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center">
+          <div v-if="cartCount === 0" class="bg-white rounded-xl shadow-sm p-12 text-center">
             <div class="text-6xl mb-4">🛒</div>
             <h3 class="text-xl font-bold text-gray-900 mb-2">장바구니가 비어있습니다</h3>
             <p class="text-sm text-gray-600 mb-6">마음에 드는 상품을 담아보세요!</p>
@@ -46,7 +106,7 @@
           <!-- 장바구니 아이템 -->
           <div
             v-for="item in cartItems"
-            :key="item.id"
+            :key="item.productCode"
             class="bg-white rounded-xl shadow-sm p-4 sm:p-6"
           >
             <div class="flex gap-4">
@@ -54,7 +114,7 @@
               <div class="flex-shrink-0 pt-1">
                 <input
                   v-model="selectedItems"
-                  :value="item.id"
+                  :value="item.productCode"
                   type="checkbox"
                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
                 />
@@ -63,8 +123,8 @@
               <!-- 상품 이미지 -->
               <div class="flex-shrink-0">
                 <img
-                  :src="item.image"
-                  :alt="item.name"
+                  :src="item.thumbnail"
+                  :alt="item.productName"
                   class="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
                 />
               </div>
@@ -74,64 +134,18 @@
                 <div class="flex justify-between items-start mb-2">
                   <div class="flex-1">
                     <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-                      {{ item.name }}
+                      {{ item.productName }}
                     </h3>
-                    <p class="text-sm text-gray-600 mb-2">{{ item.seller }}</p>
-                    <div class="flex items-center gap-2">
-                      <span
-                        v-if="item.condition === 'new'"
-                        class="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded"
-                      >
-                        새상품
-                      </span>
-                      <span
-                        v-else
-                        class="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
-                      >
-                        중고
-                      </span>
-                    </div>
                   </div>
-                  
-                  <!-- 삭제 버튼 (모바일) -->
-                  <button
-                    @click="removeItem(item.id)"
-                    class="sm:hidden text-gray-400 hover:text-red-600 transition-colors ml-2"
-                  >
-                    <span class="text-xl">🗑️</span>
-                  </button>
                 </div>
 
                 <!-- 가격 및 액션 -->
                 <div class="flex items-end justify-between mt-4">
                   <div class="flex items-center gap-3">
-                    <!-- 수량 조절 -->
-                    <div class="flex items-center border border-gray-300 rounded-lg">
-                      <button
-                        @click="decreaseQuantity(item.id)"
-                        :disabled="item.quantity <= 1"
-                        class="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
-                      >
-                        −
-                      </button>
-                      <span class="px-4 py-1 text-sm font-medium text-gray-900 min-w-[40px] text-center">
-                        {{ item.quantity }}
-                      </span>
-                      <button
-                        @click="increaseQuantity(item.id)"
-                        class="px-3 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
                   </div>
-
                   <div class="text-right">
                     <p class="text-xl sm:text-2xl font-bold text-gray-900">
-                      {{ formatPrice(item.price * item.quantity) }}원
-                    </p>
-                    <p v-if="item.quantity > 1" class="text-xs text-gray-500 mt-1">
-                      개당 {{ formatPrice(item.price) }}원
+                      {{ formatPrice(item.productPrice) }}원
                     </p>
                   </div>
                 </div>
@@ -139,7 +153,7 @@
                 <!-- 삭제 버튼 (데스크탑) -->
                 <div class="hidden sm:flex justify-end mt-3">
                   <button
-                    @click="removeItem(item.id)"
+                    @click="removeItem(item.productCode)"
                     class="text-sm text-gray-500 hover:text-red-600 transition-colors"
                   >
                     삭제
@@ -157,25 +171,8 @@
 
             <div class="space-y-3 mb-6">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">상품 금액</span>
+                <span class="text-gray-600">총 결제 금액</span>
                 <span class="font-medium text-gray-900">{{ formatPrice(totalPrice) }}원</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">배송비</span>
-                <span class="font-medium text-gray-900">{{ formatPrice(shippingFee) }}원</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">할인 금액</span>
-                <span class="font-medium text-red-600">-{{ formatPrice(discount) }}원</span>
-              </div>
-            </div>
-
-            <div class="border-t border-gray-200 pt-4 mb-6">
-              <div class="flex justify-between items-center">
-                <span class="text-lg font-semibold text-gray-900">총 결제 금액</span>
-                <span class="text-2xl font-bold text-indigo-600">
-                  {{ formatPrice(finalPrice) }}원
-                </span>
               </div>
             </div>
 
@@ -188,18 +185,6 @@
             </button>
 
             <div class="mt-4 space-y-2">
-              <div class="flex items-center gap-2 text-xs text-gray-500">
-                <span>✓</span>
-                <span>안전한 결제 시스템</span>
-              </div>
-              <div class="flex items-center gap-2 text-xs text-gray-500">
-                <span>✓</span>
-                <span>구매자 보호 프로그램</span>
-              </div>
-              <div class="flex items-center gap-2 text-xs text-gray-500">
-                <span>✓</span>
-                <span>7일 이내 반품 가능</span>
-              </div>
             </div>
           </div>
         </div>
@@ -235,93 +220,89 @@
 </template>
 
 <script setup>
+import router from '@/router'
+import { useCartStore } from '@/stores/cart'
+import { storeToRefs } from 'pinia'
 import { ref, computed, watch } from 'vue'
-// import { useRouter } from 'vue-router'
 
-// const router = useRouter()
+const cartStore = useCartStore()
+const { cartCount, cartItems, recommendCartItems } = storeToRefs(cartStore)
 
 // 상태 관리
 const selectAll = ref(false)
 const selectedItems = ref([])
 
 // 더미 데이터 (실제로는 API에서 가져옴)
-const cartItems = ref([
-  {
-    id: 1,
-    name: '아이폰 15 Pro 256GB 티타늄 블루',
-    seller: '신뢰판매자',
-    price: 1350000,
-    quantity: 1,
-    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop',
-    condition: 'new'
-  },
-  {
-    id: 2,
-    name: '갤럭시 버즈2 프로 그라파이트',
-    seller: '테크샵',
-    price: 180000,
-    quantity: 2,
-    image: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
-    condition: 'used'
-  },
-  {
-    id: 3,
-    name: '맥북 에어 M2 13인치 미드나잇',
-    seller: '애플마스터',
-    price: 1450000,
-    quantity: 1,
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop',
-    condition: 'new'
-  }
-])
+// const cartItems = ref([
+//   {
+//     productCode: 1,
+//     name: '아이폰 15 Pro 256GB 티타늄 블루',
+//     seller: '신뢰판매자',
+//     price: 1350000,
+//     image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop',
+//     condition: 'new'
+//   },
+//   {
+//     productCode: 2,
+//     name: '갤럭시 버즈2 프로 그라파이트',
+//     seller: '테크샵',
+//     price: 180000,
+//     image: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
+//     condition: 'used'
+//   },
+//   {
+//     productCode: 3,
+//     name: '맥북 에어 M2 13인치 미드나잇',
+//     seller: '애플마스터',
+//     price: 1450000,
+//     image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop',
+//     condition: 'new'
+//   }
+// ])
 
 // 추천 상품
-const recommendedItems = ref([
-  {
-    id: 101,
-    name: '에어팟 프로 2세대',
-    price: 280000,
-    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop'
-  },
-  {
-    id: 102,
-    name: '아이패드 프로 11인치',
-    price: 1200000,
-    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
-  },
-  {
-    id: 103,
-    name: '애플워치 시리즈 9',
-    price: 550000,
-    image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
-  },
-  {
-    id: 104,
-    name: '맥 미니 M2',
-    price: 750000,
-    image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=400&fit=crop'
-  }
-])
+// const recommendedItems = ref([
+//   {
+//     id: 101,
+//     name: '에어팟 프로 2세대',
+//     price: 280000,
+//     image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop'
+//   },
+//   {
+//     id: 102,
+//     name: '아이패드 프로 11인치',
+//     price: 1200000,
+//     image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
+//   },
+//   {
+//     id: 103,
+//     name: '애플워치 시리즈 9',
+//     price: 550000,
+//     image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
+//   },
+//   {
+//     id: 104,
+//     name: '맥 미니 M2',
+//     price: 750000,
+//     image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=400&fit=crop'
+//   }
+// ])
+
+const slidingRecommendCartItems = computed(() => {
+  if (recommendCartItems.value.length === 0) return []
+  return [...recommendCartItems.value, ...recommendCartItems.value, ...recommendCartItems.value]
+})
+
+const goToProduct = (productCode) => {
+  router.push(`/productdetail/${productCode}`)
+}
 
 // 계산된 값
 const totalPrice = computed(() => {
-  return selectedItems.value.reduce((sum, itemId) => {
-    const item = cartItems.value.find(i => i.id === itemId)
-    return sum + (item ? item.price * item.quantity : 0)
+  return selectedItems.value.reduce((sum, productCode) => {
+    const item = cartItems.value.find(i => i.productCode === productCode)
+    return sum + (item ? item.productPrice : 0)
   }, 0)
-})
-
-const shippingFee = computed(() => {
-  return totalPrice.value >= 50000 ? 0 : 3000
-})
-
-const discount = computed(() => {
-  // 예시: 100만원 이상 구매시 5% 할인
-  return totalPrice.value >= 1000000 ? Math.floor(totalPrice.value * 0.05) : 0
-})
-
-const finalPrice = computed(() => {
-  return totalPrice.value + shippingFee.value - discount.value
 })
 
 // 전체 선택 감시
@@ -336,42 +317,31 @@ const formatPrice = (price) => {
 
 const toggleSelectAll = () => {
   if (selectAll.value) {
-    selectedItems.value = cartItems.value.map(item => item.id)
+    selectedItems.value = cartItems.value.map(item => item.productCode)
   } else {
     selectedItems.value = []
   }
 }
 
-const increaseQuantity = (itemId) => {
-  const item = cartItems.value.find(i => i.id === itemId)
-  if (item) {
-    item.quantity++
-  }
-}
-
-const decreaseQuantity = (itemId) => {
-  const item = cartItems.value.find(i => i.id === itemId)
-  if (item && item.quantity > 1) {
-    item.quantity--
-  }
-}
-
-const removeItem = (itemId) => {
+const removeItem = (productCode) => {
   if (confirm('상품을 삭제하시겠습니까?')) {
-    const index = cartItems.value.findIndex(i => i.id === itemId)
-    if (index > -1) {
-      cartItems.value.splice(index, 1)
-      selectedItems.value = selectedItems.value.filter(id => id !== itemId)
-    }
+    cartStore.deleteCartItemOne(productCode)
   }
 }
 
 const deleteSelected = () => {
-  if (confirm(`선택한 ${selectedItems.value.length}개 상품을 삭제하시겠습니까?`)) {
-    cartItems.value = cartItems.value.filter(item => !selectedItems.value.includes(item.id))
-    selectedItems.value = []
+  if (selectedItems.value.length === cartCount.value) {
+    if (confirm('전체 상품을 삭제하시겠습니까?')) {
+      cartStore.deleteCartItemsAll()
+    }
+  } else {
+    if (confirm(`선택한 ${selectedItems.value.length}개 상품을 삭제하시겠습니까?`)) {
+      cartStore.deleteCartItemsSel(selectedItems.value)
+    }
   }
+  selectedItems.value = []
 }
+
 
 const checkout = () => {
   if (selectedItems.value.length === 0) {
@@ -390,11 +360,6 @@ const checkout = () => {
   
   alert(`${selectedItems.value.length}개 상품을 주문합니다.`)
 }
-
-// 초기 로딩시 전체 선택
-// onMounted(() => {
-//   selectedItems.value = cartItems.value.map(item => item.id)
-// })
 </script>
 
 <style scoped>
