@@ -86,7 +86,7 @@
               <div v-else class="space-y-4">
                 <div
                   v-for="order in filteredOrders"
-                  :key="order.id"
+                  :key="order.code"
                   class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
                 >
                   <div class="flex gap-4">
@@ -117,13 +117,13 @@
                       <div class="flex gap-2">
                         <button
                           v-if="order.status === 'shipped'"
-                          @click="confirmOrder(order.id)"
+                          @click="confirmOrder(order.code)"
                           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
                         >
                           구매 확정
                         </button>
                         <button
-                          @click="viewOrderDetail(order.id)"
+                          @click="viewOrderDetail(order.code)"
                           class="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
                         >
                           상세 보기
@@ -533,15 +533,25 @@ const editProfile = () => {
   console.log('프로필 수정')
 }
 
-const confirmOrder = (orderId) => {
+const confirmOrder = async (orderCode) => {
   if (confirm('구매를 확정하시겠습니까?')) {
-    console.log('구매 확정:', orderId)
+    console.log('구매 확정:', orderCode)
     alert('구매가 확정되었습니다.')
   }
+
+  const access = sessionStorage.getItem('accessToken')
+  if (!access) throw new Error('access 토큰이 없습니다.')
+
+  await api.patch(`/confirm/${orderCode}`, {
+    headers: { access },
+    withCredentials: true,
+  })
+
+  await router.push('/profile')
 }
 
-const viewOrderDetail = (orderId) => {
-  console.log('주문 상세:', orderId)
+const viewOrderDetail = (orderCode) => {
+  console.log('주문 상세:', orderCode)
 }
 
 const goToRegister = () => {
@@ -565,7 +575,7 @@ const deleteProduct = async (productCode) => {
     withCredentials: true,
   })
 
-  await router.push("/profile")
+  await router.push('/profile')
 }
 
 // const unlikeProduct = (productId) => {
