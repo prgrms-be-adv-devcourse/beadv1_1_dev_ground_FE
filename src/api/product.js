@@ -110,3 +110,49 @@ export const getUserProducts = ({ page = 1, size = 10 } = {}) => {
     headers,
   })
 }
+
+/**
+ * 상품 등록 API
+ */
+export const registProduct = (data) => {
+  const accessToken = sessionStorage.getItem('accessToken')
+
+  return axios.post('/api/products', data, {
+    headers: {
+      access: accessToken,
+    },
+  })
+}
+
+/**
+ * S3에 이미지 업로드 (Presigned URL 사용)
+ * @param {string} presignedUrl - Presigned URL
+ * @param {File} file - 업로드할 이미지 파일
+ */
+export const uploadImageToS3 = async (presignedUrl, file) => {
+  // Presigned URL로 직접 PUT 요청
+  return axios.put(presignedUrl, file, {
+    headers: {
+      'Content-Type': file.type,
+    },
+  })
+}
+
+/**
+ * 상품 이미지 URL 저장 API
+ * @param {string} productCode - 상품 코드
+ * @param {string[]} urls - S3 이미지 URL 목록
+ */
+export const saveProductImages = (productCode, urls) => {
+  const accessToken = sessionStorage.getItem('accessToken')
+
+  return axios.post(
+    `/api/products/${productCode}/images/upload`,
+    { urls },
+    {
+      headers: {
+        access: accessToken,
+      },
+    },
+  )
+}
