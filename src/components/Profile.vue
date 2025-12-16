@@ -386,7 +386,8 @@ const userInfo = ref({
 
 const getUserInfo = async () => {
   try {
-    const payload = await fetchUserInfo()
+    const response = await fetchUserInfo()
+    const payload = response?.data?.data ?? response?.data ?? response
     if (!payload) return
 
     const { nickname, email, phone } = payload
