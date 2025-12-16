@@ -5,53 +5,16 @@
         <!-- 사이드바 -->
         <div class="lg:col-span-1 space-y-6">
           <!-- 프로필 카드 -->
-          <div class="bg-white rounded-xl shadow-sm p-6">
-            <div class="flex flex-col items-center">
-              <div class="relative mb-4">
-                <img
-                  :src="userInfo.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop'"
-                  alt="프로필"
-                  class="w-24 h-24 rounded-full object-cover border-4 border-gray-100"
-                />
-                <button
-                  @click="editProfile"
-                  class="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center text-white transition-colors shadow-md"
-                >
-                  <span class="text-sm">✏️</span>
-                </button>
-              </div>
-              <h2 class="text-xl font-bold text-gray-900 mb-1">{{ userInfo.nickname }}</h2>
-              <p class="text-sm text-gray-600 mb-4">{{ userInfo.email }}</p>
-              
-              <!-- 신뢰도 -->
-              <div class="w-full bg-gray-100 rounded-lg p-3 mb-4">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs text-gray-600">신뢰도</span>
-                  <span class="text-sm font-bold text-indigo-600">{{ userInfo.trustScore }}점</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    class="bg-indigo-600 h-2 rounded-full transition-all"
-                    :style="{ width: `${userInfo.trustScore}%` }"
-                  ></div>
-                </div>
-              </div>
-
-              <!-- 통계 -->
-              <div class="w-full grid grid-cols-3 gap-2 text-center">
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <p class="text-xs text-gray-600 mb-1">판매</p>
-                  <p class="text-lg font-bold text-gray-900">{{ userInfo.sellCount }}</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <p class="text-xs text-gray-600 mb-1">구매</p>
-                  <p class="text-lg font-bold text-gray-900">{{ userInfo.buyCount }}</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-2">
-                  <p class="text-xs text-gray-600 mb-1">리뷰</p>
-                  <p class="text-lg font-bold text-gray-900">{{ userInfo.reviewCount }}</p>
-                </div>
-              </div>
+          <div class="bg-white rounded-xl shadow-sm px-6 pt-10 pb-6">
+            <div class="flex flex-col items-center gap-3">
+              <h2 class="text-xl font-bold text-gray-900">{{ userInfo.nickname }}</h2>
+              <p class="text-sm text-gray-600">{{ userInfo.email }}</p>
+              <button
+                @click="editProfile"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+              >
+                프로필 변경
+              </button>
             </div>
           </div>
 
@@ -241,98 +204,98 @@
           </div>
 
           <!-- 찜한 상품 -->
-          <div v-if="selectedMenu === 'likes'" class="bg-white rounded-xl shadow-sm">
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-2xl font-bold text-gray-900">찜한 상품</h2>
-            </div>
+<!--          <div v-if="selectedMenu === 'likes'" class="bg-white rounded-xl shadow-sm">-->
+<!--            <div class="p-6 border-b border-gray-200">-->
+<!--              <h2 class="text-2xl font-bold text-gray-900">찜한 상품</h2>-->
+<!--            </div>-->
 
-            <div class="p-6">
-              <div v-if="likedProducts.length === 0" class="text-center py-12">
-                <div class="text-5xl mb-4">❤️</div>
-                <p class="text-gray-600">찜한 상품이 없습니다</p>
-              </div>
+<!--            <div class="p-6">-->
+<!--              <div v-if="likedProducts.length === 0" class="text-center py-12">-->
+<!--                <div class="text-5xl mb-4">❤️</div>-->
+<!--                <p class="text-gray-600">찜한 상품이 없습니다</p>-->
+<!--              </div>-->
 
-              <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div
-                  v-for="product in likedProducts"
-                  :key="product.id"
-                  class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"
-                >
-                  <button
-                    @click="unlikeProduct(product.id)"
-                    class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
-                  >
-                    <span class="text-red-500">❤️</span>
-                  </button>
-                  <img
-                    :src="product.image"
-                    :alt="product.name"
-                    class="w-full h-40 object-cover"
-                  />
-                  <div class="p-3">
-                    <h3 class="font-medium text-gray-900 text-sm mb-1 line-clamp-2">{{ product.name }}</h3>
-                    <p class="text-base font-bold text-indigo-600">{{ formatPrice(product.price) }}원</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<!--              <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">-->
+<!--                <div-->
+<!--                  v-for="product in likedProducts"-->
+<!--                  :key="product.id"-->
+<!--                  class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"-->
+<!--                >-->
+<!--                  <button-->
+<!--                    @click="unlikeProduct(product.id)"-->
+<!--                    class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"-->
+<!--                  >-->
+<!--                    <span class="text-red-500">❤️</span>-->
+<!--                  </button>-->
+<!--                  <img :src="product.image" :alt="product.name" class="w-full h-40 object-cover" />-->
+<!--                  <div class="p-3">-->
+<!--                    <h3 class="font-medium text-gray-900 text-sm mb-1 line-clamp-2">-->
+<!--                      {{ product.name }}-->
+<!--                    </h3>-->
+<!--                    <p class="text-base font-bold text-indigo-600">-->
+<!--                      {{ formatPrice(product.price) }}원-->
+<!--                    </p>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
 
           <!-- 리뷰 관리 -->
-          <div v-if="selectedMenu === 'reviews'" class="bg-white rounded-xl shadow-sm">
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-2xl font-bold text-gray-900">리뷰 관리</h2>
-            </div>
+<!--          <div v-if="selectedMenu === 'reviews'" class="bg-white rounded-xl shadow-sm">-->
+<!--            <div class="p-6 border-b border-gray-200">-->
+<!--              <h2 class="text-2xl font-bold text-gray-900">리뷰 관리</h2>-->
+<!--            </div>-->
 
-            <div class="p-6">
-              <div v-if="reviews.length === 0" class="text-center py-12">
-                <div class="text-5xl mb-4">⭐</div>
-                <p class="text-gray-600">작성한 리뷰가 없습니다</p>
-              </div>
+<!--            <div class="p-6">-->
+<!--              <div v-if="reviews.length === 0" class="text-center py-12">-->
+<!--                <div class="text-5xl mb-4">⭐</div>-->
+<!--                <p class="text-gray-600">작성한 리뷰가 없습니다</p>-->
+<!--              </div>-->
 
-              <div v-else class="space-y-4">
-                <div
-                  v-for="review in reviews"
-                  :key="review.id"
-                  class="border border-gray-200 rounded-xl p-4"
-                >
-                  <div class="flex justify-between items-start mb-3">
-                    <div class="flex items-center gap-3">
-                      <img
-                        :src="review.productImage"
-                        :alt="review.productName"
-                        class="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div>
-                        <h3 class="font-semibold text-gray-900 mb-1">{{ review.productName }}</h3>
-                        <div class="flex items-center gap-1">
-                          <span v-for="i in 5" :key="i" class="text-yellow-400">
-                            {{ i <= review.rating ? '⭐' : '☆' }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span class="text-xs text-gray-500">{{ formatDate(review.date) }}</span>
-                  </div>
-                  <p class="text-sm text-gray-700 mb-3">{{ review.content }}</p>
-                  <div class="flex gap-2">
-                    <button
-                      @click="editReview(review.id)"
-                      class="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
-                    >
-                      수정
-                    </button>
-                    <button
-                      @click="deleteReview(review.id)"
-                      class="text-sm text-gray-600 hover:text-red-600 transition-colors"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<!--              <div v-else class="space-y-4">-->
+<!--                <div-->
+<!--                  v-for="review in reviews"-->
+<!--                  :key="review.id"-->
+<!--                  class="border border-gray-200 rounded-xl p-4"-->
+<!--                >-->
+<!--                  <div class="flex justify-between items-start mb-3">-->
+<!--                    <div class="flex items-center gap-3">-->
+<!--                      <img-->
+<!--                        :src="review.productImage"-->
+<!--                        :alt="review.productName"-->
+<!--                        class="w-16 h-16 object-cover rounded-lg"-->
+<!--                      />-->
+<!--                      <div>-->
+<!--                        <h3 class="font-semibold text-gray-900 mb-1">{{ review.productName }}</h3>-->
+<!--                        <div class="flex items-center gap-1">-->
+<!--                          <span v-for="i in 5" :key="i" class="text-yellow-400">-->
+<!--                            {{ i <= review.rating ? '⭐' : '☆' }}-->
+<!--                          </span>-->
+<!--                        </div>-->
+<!--                      </div>-->
+<!--                    </div>-->
+<!--                    <span class="text-xs text-gray-500">{{ formatDate(review.date) }}</span>-->
+<!--                  </div>-->
+<!--                  <p class="text-sm text-gray-700 mb-3">{{ review.content }}</p>-->
+<!--                  <div class="flex gap-2">-->
+<!--                    <button-->
+<!--                      @click="editReview(review.id)"-->
+<!--                      class="text-sm text-gray-600 hover:text-indigo-600 transition-colors"-->
+<!--                    >-->
+<!--                      수정-->
+<!--                    </button>-->
+<!--                    <button-->
+<!--                      @click="deleteReview(review.id)"-->
+<!--                      class="text-sm text-gray-600 hover:text-red-600 transition-colors"-->
+<!--                    >-->
+<!--                      삭제-->
+<!--                    </button>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
 
           <!-- 설정 -->
           <div v-if="selectedMenu === 'settings'" class="bg-white rounded-xl shadow-sm">
@@ -394,7 +357,8 @@
 
 <script setup>
 import router from '@/router'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getUserInfo as fetchUserInfo } from '@/api/user'
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()
@@ -405,22 +369,39 @@ const selectedOrderTab = ref('all')
 
 // 사용자 정보
 const userInfo = ref({
-  nickname: '테크마스터',
-  email: 'tech@example.com',
-  profileImage: null,
-  trustScore: 85,
-  sellCount: 23,
-  buyCount: 47,
-  reviewCount: 31
+  nickname: '',
+  email: '',
+  phone: '',
+})
+
+const getUserInfo = async () => {
+  try {
+    const payload = await fetchUserInfo()
+    if (!payload) return
+
+    const { nickname, email, phone } = payload
+    userInfo.value = {
+      ...userInfo.value,
+      nickname: nickname ?? userInfo.value.nickname,
+      email: email ?? userInfo.value.email,
+      phone: phone ?? userInfo.value.phone,
+    }
+  } catch (error) {
+    console.error('사용자 정보 요청 실패', error)
+  }
+}
+
+onMounted(() => {
+  getUserInfo()
 })
 
 // 메뉴
 const menus = [
   { id: 'orders', label: '거래 관리', icon: '📦', badge: 3 },
   { id: 'sales', label: '판매 관리', icon: '🏪', badge: null },
-  { id: 'likes', label: '찜한 상품', icon: '❤️', badge: null },
+  // { id: 'likes', label: '찜한 상품', icon: '❤️', badge: null },
   { id: 'reviews', label: '리뷰 관리', icon: '⭐', badge: null },
-  { id: 'settings', label: '설정', icon: '⚙️', badge: null }
+  { id: 'settings', label: '설정', icon: '⚙️', badge: null },
 ]
 
 // 주문 탭
@@ -428,7 +409,7 @@ const orderTabs = [
   { label: '전체', value: 'all', count: null },
   { label: '입금대기', value: 'pending', count: 1 },
   { label: '배송중', value: 'shipped', count: 2 },
-  { label: '구매확정', value: 'completed', count: null }
+  { label: '구매확정', value: 'completed', count: null },
 ]
 
 // 더미 주문 데이터
@@ -440,7 +421,7 @@ const orders = ref([
     price: 1350000,
     status: 'shipped',
     date: '2024-12-10',
-    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop'
+    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop',
   },
   {
     id: 2,
@@ -449,7 +430,7 @@ const orders = ref([
     price: 1450000,
     status: 'pending',
     date: '2024-12-11',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop'
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop',
   },
   {
     id: 3,
@@ -458,8 +439,8 @@ const orders = ref([
     price: 280000,
     status: 'completed',
     date: '2024-12-05',
-    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop'
-  }
+    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop',
+  },
 ])
 
 // 판매 상품
@@ -472,7 +453,7 @@ const saleProducts = ref([
     views: 234,
     likes: 45,
     chats: 12,
-    image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop'
+    image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop',
   },
   {
     id: 2,
@@ -482,58 +463,60 @@ const saleProducts = ref([
     views: 156,
     likes: 28,
     chats: 8,
-    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
-  }
+    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop',
+  },
 ])
 
 // 찜한 상품
-const likedProducts = ref([
-  {
-    id: 1,
-    name: '애플워치 시리즈 9',
-    price: 550000,
-    image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
-  },
-  {
-    id: 2,
-    name: '소니 WH-1000XM5',
-    price: 350000,
-    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop'
-  },
-  {
-    id: 3,
-    name: '닌텐도 스위치 OLED',
-    price: 380000,
-    image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop'
-  }
-])
+// const likedProducts = ref([
+//   {
+//     id: 1,
+//     name: '애플워치 시리즈 9',
+//     price: 550000,
+//     image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop',
+//   },
+//   {
+//     id: 2,
+//     name: '소니 WH-1000XM5',
+//     price: 350000,
+//     image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop',
+//   },
+//   {
+//     id: 3,
+//     name: '닌텐도 스위치 OLED',
+//     price: 380000,
+//     image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop',
+//   },
+// ])
 
 // 리뷰
-const reviews = ref([
-  {
-    id: 1,
-    productName: '아이폰 14 Pro',
-    productImage: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop',
-    rating: 5,
-    content: '상태 정말 좋고 판매자님도 친절하세요. 안전거래로 믿고 샀습니다!',
-    date: '2024-12-08'
-  },
-  {
-    id: 2,
-    productName: '갤럭시 버즈2 프로',
-    productImage: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
-    rating: 4,
-    content: '가성비 좋은 거래였습니다. 추천해요!',
-    date: '2024-12-01'
-  }
-])
+// const reviews = ref([
+//   {
+//     id: 1,
+//     productName: '아이폰 14 Pro',
+//     productImage:
+//       'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop',
+//     rating: 5,
+//     content: '상태 정말 좋고 판매자님도 친절하세요. 안전거래로 믿고 샀습니다!',
+//     date: '2024-12-08',
+//   },
+//   {
+//     id: 2,
+//     productName: '갤럭시 버즈2 프로',
+//     productImage:
+//       'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
+//     rating: 4,
+//     content: '가성비 좋은 거래였습니다. 추천해요!',
+//     date: '2024-12-01',
+//   },
+// ])
 
 // 계산된 값
 const filteredOrders = computed(() => {
   if (selectedOrderTab.value === 'all') {
     return orders.value
   }
-  return orders.value.filter(o => o.status === selectedOrderTab.value)
+  return orders.value.filter((o) => o.status === selectedOrderTab.value)
 })
 
 // 메서드
@@ -550,7 +533,7 @@ const getOrderStatusStyle = (status) => {
   const styles = {
     pending: 'bg-yellow-100 text-yellow-700',
     shipped: 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700'
+    completed: 'bg-green-100 text-green-700',
   }
   return styles[status] || 'bg-gray-100 text-gray-700'
 }
@@ -559,7 +542,7 @@ const getOrderStatusText = (status) => {
   const texts = {
     pending: '입금대기',
     shipped: '배송중',
-    completed: '구매확정'
+    completed: '구매확정',
   }
   return texts[status] || '알 수 없음'
 }
@@ -594,20 +577,20 @@ const deleteProduct = (productId) => {
   }
 }
 
-const unlikeProduct = (productId) => {
-  console.log('찜 취소:', productId)
-  likedProducts.value = likedProducts.value.filter(p => p.id !== productId)
-}
+// const unlikeProduct = (productId) => {
+//   console.log('찜 취소:', productId)
+//   likedProducts.value = likedProducts.value.filter((p) => p.id !== productId)
+// }
 
-const editReview = (reviewId) => {
-  console.log('리뷰 수정:', reviewId)
-}
+// const editReview = (reviewId) => {
+//   console.log('리뷰 수정:', reviewId)
+// }
 
-const deleteReview = (reviewId) => {
-  if (confirm('리뷰를 삭제하시겠습니까?')) {
-    console.log('리뷰 삭제:', reviewId)
-  }
-}
+// const deleteReview = (reviewId) => {
+//   if (confirm('리뷰를 삭제하시겠습니까?')) {
+//     console.log('리뷰 삭제:', reviewId)
+//   }
+// }
 
 const changePassword = () => {
   console.log('비밀번호 변경')
