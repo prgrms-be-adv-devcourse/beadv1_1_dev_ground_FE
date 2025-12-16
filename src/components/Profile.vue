@@ -205,13 +205,55 @@
                   </div>
                 </div>
 
-                <div v-if="hasMoreSales" class="text-center">
+                <!-- 페이지네이션 -->
+                <div
+                  v-if="!salesLoading && salesTotalPages > 1"
+                  class="mt-8 flex justify-center items-center gap-2"
+                >
                   <button
-                    @click="loadSaleProducts()"
-                    :disabled="salesLoading"
-                    class="px-6 py-3 bg-white border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 disabled:opacity-60 rounded-xl font-semibold transition-colors"
+                    @click="goToSalesPage(salesPage - 1)"
+                    :disabled="salesPage === 1"
+                    class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {{ salesLoading ? '불러오는 중...' : '더 보기' }}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  <template v-for="page in displayedSalesPages" :key="page">
+                    <button
+                      v-if="page !== '...'"
+                      @click="goToSalesPage(page)"
+                      class="px-4 py-2 rounded-lg border transition-colors"
+                      :class="
+                        salesPage === page
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      "
+                    >
+                      {{ page }}
+                    </button>
+                    <span v-else class="px-2 text-gray-500">...</span>
+                  </template>
+
+                  <button
+                    @click="goToSalesPage(salesPage + 1)"
+                    :disabled="salesPage === salesTotalPages"
+                    class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -322,6 +364,21 @@ const salesPage = ref(1)
 const salesSize = ref(10)
 const salesTotalPages = ref(1)
 const salesLoading = ref(false)
+const displayedSalesPages = computed(() => {
+  const total = salesTotalPages.value
+  const current = salesPage.value
+  const delta = 1
+  const range = []
+
+  for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+    range.push(i)
+  }
+
+  if (range[0] > 1) range.unshift(1, '...')
+  if (range[range.length - 1] < total) range.push('...', total)
+
+  return [...new Set(range)]
+})
 
 const normalizeSaleProduct = (item) => {
   const rawStatus = (item?.productStatus ?? item?.status ?? '').toString()
@@ -341,35 +398,36 @@ const normalizeSaleProduct = (item) => {
   }
 }
 
-const loadSaleProducts = async ({ reset = false } = {}) => {
+const loadSaleProducts = async ({ page = 1 } = {}) => {
   if (salesLoading.value) return
   salesLoading.value = true
 
   try {
-    const nextPage = reset ? 1 : salesPage.value
-    const response = await fetchUserProducts({ page: nextPage, size: salesSize.value })
+    const response = await fetchUserProducts({ page, size: salesSize.value })
     const payload = response?.data?.data ?? response?.data ?? response
     const list = Array.isArray(payload)
       ? payload
       : payload?.items ?? payload?.content ?? payload?.products ?? []
 
-    const normalized = list.map(normalizeSaleProduct)
-    saleProducts.value = reset ? normalized : [...saleProducts.value, ...normalized]
-
-    const totalPages = payload?.totalPages ?? payload?.page?.totalPages ?? salesTotalPages.value
-    salesTotalPages.value = totalPages || 1
-    salesPage.value = nextPage + 1
+    saleProducts.value = list.map(normalizeSaleProduct)
+    salesTotalPages.value = payload?.totalPages ?? payload?.page?.totalPages ?? 1
+    salesPage.value = payload?.currentPageNumber ?? page
   } catch (error) {
     console.error('판매 상품 조회 실패', error)
-    if (reset) saleProducts.value = []
+    saleProducts.value = []
   } finally {
     salesLoading.value = false
   }
 }
 
+const goToSalesPage = (page) => {
+  if (page < 1 || page > salesTotalPages.value || page === salesPage.value) return
+  loadSaleProducts({ page })
+}
+
 onMounted(() => {
   getUserInfo()
-  loadSaleProducts({ reset: true })
+  loadSaleProducts({ page: 1 })
 })
 
 // 메뉴
@@ -391,7 +449,6 @@ const orderTabs = ref([
 
 // 주문 데이터
 const orders = ref([])
-const hasMoreSales = computed(() => salesPage.value <= salesTotalPages.value)
 
 // 계산된 값
 const filteredOrders = computed(() => {
