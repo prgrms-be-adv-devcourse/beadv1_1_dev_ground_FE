@@ -424,6 +424,25 @@
             <p class="text-gray-500 text-lg">검색 결과가 없습니다.</p>
           </div>
 
+          <!-- 상품 등록 버튼 -->
+          <div class="mt-8 flex justify-end">
+            <button
+              @click="router.push('/productregist')"
+              class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <span class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                상품 등록하기
+              </span>
+            </button>
+          </div>
           <!-- ✅ 페이지네이션 (항상 표시) -->
           <div v-if="!loading" class="mt-8 space-y-4">
             <!-- 페이지 입력 -->
@@ -435,8 +454,8 @@
                 min="1"
                 :max="totalPages"
                 @keyup.enter="goToInputPage"
-                class="w-20 px-3 py-1 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:border-indigo-600"
-                placeholder="페이지"
+                class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:border-indigo-600"
+                placeholder="번호"
               />
               <button
                 @click="goToInputPage"
