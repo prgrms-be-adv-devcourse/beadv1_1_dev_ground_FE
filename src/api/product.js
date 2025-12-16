@@ -96,3 +96,17 @@ export const getProductDetail = (productCode) => {
     headers,
   })
 }
+
+export const getUserProducts = ({ page = 1, size = 10 } = {}) => {
+  const accessToken = sessionStorage.getItem('accessToken') // ✅ accessToken
+
+  const headers = {}
+  if (accessToken) {
+    headers['access'] = accessToken // ✅ access 헤더로 전달
+  }
+
+  return axios.get('/api/products/user', {
+    params: { page, size },
+    headers,
+  })
+}
