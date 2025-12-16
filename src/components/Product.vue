@@ -523,7 +523,7 @@ const loadingRecommend = ref(false)
 const totalCount = ref(0)
 const totalPages = ref(1) // ✅ 기본값 1로 설정
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(10)
 const pageInput = ref(null)
 
 // ✅ 페이지네이션 로직 개선: 좌우 4개씩

@@ -29,7 +29,7 @@
         @click="goBack"
         class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
       >
-        돌아가기
+        뒤로가기
       </button>
     </div>
   </div>
@@ -194,7 +194,7 @@
           </div>
         </div>
 
-        <!-- 오른쪽: 상품 정보 (고정 높이) -->
+        <!-- 오른쪽 상품 정보 (고정 위치) -->
         <div class="lg:sticky lg:top-24 lg:self-start">
           <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
             <!-- 판매자 정보 -->
@@ -304,7 +304,7 @@
                           clip-rule="evenodd"
                         />
                       </svg>
-                      예치금 결제 시스템
+                      에스크로 결제 시스템
                     </li>
                     <li class="flex items-center gap-2">
                       <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -314,7 +314,7 @@
                           clip-rule="evenodd"
                         />
                       </svg>
-                      거래 완료 후 정산
+                      거래 분쟁 해결
                     </li>
                   </ul>
                 </div>
@@ -324,7 +324,7 @@
         </div>
       </div>
 
-      <!-- ✅ 비슷한 상품 추천 (타입 분기 추가) -->
+      <!-- 🔹 비슷한 상품 추천 (타입 분기 추가) -->
       <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
         <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 {{ recommendTitle }}</h2>
 
@@ -356,7 +356,7 @@
             </svg>
           </button>
 
-          <!-- ✅ 추천 상품 그리드 (responsive: 2~5열) -->
+          <!-- 🔹 추천 상품 그리드 (responsive: 2~5열) -->
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <div
               v-for="(item, index) in displayedRecommendations"
@@ -370,7 +370,6 @@
                   :src="item.thumbnailUrl"
                   :alt="item.title"
                   class="w-full h-full object-cover"
-                  @error="handleImageError"
                 />
                 <svg v-else class="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -381,9 +380,9 @@
                 </svg>
               </div>
               <div class="p-3">
-                <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                <p class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
                   {{ item.title }}
-                </h3>
+                </p>
                 <p class="text-base font-bold text-indigo-600">{{ formatPrice(item.price) }}원</p>
               </div>
             </div>
@@ -411,12 +410,15 @@
           </button>
         </div>
 
-        <div v-else class="bg-gray-50 rounded-lg p-12 text-center">
+        <div
+          v-else
+          class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200"
+        >
           <svg
-            class="mx-auto h-12 w-12 text-gray-400 mb-3"
+            class="w-16 h-16 text-gray-300 mx-auto mb-4"
             fill="none"
-            viewBox="0 0 24 24"
             stroke="currentColor"
+            viewBox="0 0 24 24"
           >
             <path
               stroke-linecap="round"
@@ -433,7 +435,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
@@ -450,17 +452,17 @@ const currentUser = ref(null)
 const selectedImageIndex = ref(0)
 const activeTab = ref('detail')
 const recommendedProducts = ref([])
-const recommendType = ref(null) // ✅ 추가
+const recommendType = ref(null) // 🔹 추가
 const loadingRecommend = ref(false)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(5) // ✅ 5개로 복원
+const itemsPerPage = ref(5) // 🔹 5개로 복원
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
   { id: 'info', name: '거래정보' },
 ]
 
-// ✅ 추천 타입 제목
+// 🔹 추천 타입 제목
 const recommendTitle = computed(() => {
   if (recommendType.value === 'PRODUCT_DETAIL_BASED') {
     return '이 상품과 비슷한 상품'
@@ -495,19 +497,7 @@ const getProductStatusText = (status) => {
     RESERVED: '예약중',
     SOLD_OUT: '판매완료',
   }
-  return statusMap[status] || status
-}
-
-const handleMainImageError = (e) => {
-  e.target.style.display = 'none'
-}
-
-const handleThumbnailError = (e) => {
-  e.target.parentElement.style.display = 'none'
-}
-
-const handleImageError = (e) => {
-  e.target.style.display = 'none'
+  return statusMap[status] || '알 수 없음'
 }
 
 const goBack = () => {
@@ -531,47 +521,46 @@ const handleBuyNow = () => {
   alert('주문 기능은 준비 중입니다.')
 }
 
+// 🔹 수정: window.location.reload() 제거
 const goToProduct = (productCode) => {
   router.push(`/productDetail/${productCode}`)
-  window.location.reload()
 }
 
 const fetchProductDetail = async () => {
+  loading.value = true
+  error.value = null
   try {
-    loading.value = true
-    error.value = null
-
     const productCode = route.params.productCode
-    if (!productCode) {
-      throw new Error('상품 코드가 없습니다.')
-    }
-
-    const accessToken = sessionStorage.getItem('accessToken')
-    if (!accessToken) {
-      throw new Error('로그인이 필요합니다.')
-    }
-
     const response = await getProductDetail(productCode)
-    if (response.data.success) {
+
+    if (response.data.success && response.data.data) {
       product.value = response.data.data
+      selectedImageIndex.value = 0 // 이미지 인덱스 초기화
     } else {
-      throw new Error(response.data.message || '상품 정보를 불러올 수 없습니다.')
+      error.value = response.data.msg || '상품을 불러올 수 없습니다.'
     }
   } catch (err) {
     console.error('[상품 상세] 에러:', err)
-    error.value = err.message || '상품 정보를 불러오는 중 오류가 발생했습니다.'
+    error.value = '상품을 불러오는 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
   }
 }
 
+const handleMainImageError = (e) => {
+  console.error('메인 이미지 로드 실패:', e.target.src)
+  e.target.src = 'https://via.placeholder.com/400?text=Image+Not+Found'
+}
+
+const handleThumbnailError = (e) => {
+  console.error('썸네일 이미지 로드 실패:', e.target.src)
+  e.target.src = 'https://via.placeholder.com/80?text=No+Image'
+}
+
 const fetchUserInfo = async () => {
   try {
-    const accessToken = sessionStorage.getItem('accessToken')
-    if (!accessToken) return
-
     const response = await getUserInfo()
-    if (response.data.success) {
+    if (response.data.success && response.data.data) {
       currentUser.value = response.data.data
     }
   } catch (err) {
@@ -588,7 +577,8 @@ const fetchRecommendations = async () => {
     if (response.data.success && response.data.data) {
       const data = response.data.data
       recommendedProducts.value = data.recommendSpecs || data || []
-      recommendType.value = data.recommendType || null // ✅ 타입 저장
+      recommendType.value = data.recommendType || null // 🔹 타입 저장
+      currentRecommendPage.value = 0 // 페이지 초기화
     } else {
       recommendedProducts.value = []
       recommendType.value = null
@@ -602,14 +592,26 @@ const fetchRecommendations = async () => {
   }
 }
 
+// 🔹 초기 로드
 onMounted(async () => {
   await Promise.all([fetchProductDetail(), fetchUserInfo(), fetchRecommendations()])
 })
+
+// 🔹 라우트 파라미터 변경 감지 - 핵심 수정!
+watch(
+  () => route.params.productCode,
+  async (newProductCode, oldProductCode) => {
+    // productCode가 실제로 변경되었을 때만 다시 로드
+    if (newProductCode && newProductCode !== oldProductCode) {
+      console.log(`상품 코드 변경: ${oldProductCode} -> ${newProductCode}`)
+      await Promise.all([fetchProductDetail(), fetchRecommendations()])
+    }
+  },
+)
 </script>
 
 <style scoped>
 ::-webkit-scrollbar {
-  width: 8px;
   height: 8px;
 }
 
@@ -619,17 +621,17 @@ onMounted(async () => {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #c7d2fe;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #a5b4fc;
 }
 
-.line-clamp-2 {
+.line-clamp-1 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
