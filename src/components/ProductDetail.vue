@@ -324,9 +324,9 @@
         </div>
       </div>
 
-      <!-- 비슷한 상품 추천 -->
+      <!-- ✅ 비슷한 상품 추천 (타입 분기 추가) -->
       <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 이 상품과 비슷한 상품</h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 {{ recommendTitle }}</h2>
 
         <div v-if="loadingRecommend" class="flex justify-center py-8">
           <div
@@ -356,8 +356,8 @@
             </svg>
           </button>
 
-          <!-- 상품 그리드 (2열) -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- ✅ 추천 상품 그리드 (responsive: 2~5열) -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <div
               v-for="(item, index) in displayedRecommendations"
               :key="`rec-${index}`"
@@ -433,7 +433,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
@@ -448,14 +448,23 @@ const currentUser = ref(null)
 const selectedImageIndex = ref(0)
 const activeTab = ref('detail')
 const recommendedProducts = ref([])
+const recommendType = ref(null) // ✅ 추가
 const loadingRecommend = ref(false)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(2)
+const itemsPerPage = ref(5) // ✅ 5개로 복원
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
   { id: 'info', name: '거래정보' },
 ]
+
+// ✅ 추천 타입 제목
+const recommendTitle = computed(() => {
+  if (recommendType.value === 'PRODUCT_DETAIL_BASED') {
+    return '이 상품과 비슷한 상품'
+  }
+  return '인기 상품 추천'
+})
 
 const displayedRecommendations = computed(() => {
   if (recommendedProducts.value.length === 0) return []
@@ -575,12 +584,15 @@ const fetchRecommendations = async () => {
     if (response.data.success && response.data.data) {
       const data = response.data.data
       recommendedProducts.value = data.recommendSpecs || data || []
+      recommendType.value = data.recommendType || null // ✅ 타입 저장
     } else {
       recommendedProducts.value = []
+      recommendType.value = null
     }
   } catch (err) {
     console.error('[추천 상품] 에러:', err)
     recommendedProducts.value = []
+    recommendType.value = null
   } finally {
     loadingRecommend.value = false
   }

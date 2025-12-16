@@ -105,8 +105,8 @@
             </svg>
           </button>
 
-          <!-- 상품 그리드 (2열) -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- ✅ 추천 상품 그리드 (responsive: 2~5열) -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <div
               v-for="(item, index) in displayedRecommendations"
               :key="`rec-${index}`"
@@ -424,59 +424,79 @@
             <p class="text-gray-500 text-lg">검색 결과가 없습니다.</p>
           </div>
 
-          <!-- 페이지네이션 -->
-          <div
-            v-if="!loading && totalPages > 1"
-            class="mt-8 flex justify-center items-center gap-2"
-          >
-            <!-- 이전 페이지 -->
-            <button
-              @click="goToPage(currentPage - 1)"
-              :disabled="currentPage === 1"
-              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-
-            <!-- 페이지 번호들 -->
-            <template v-for="page in displayedPages" :key="page">
+          <!-- ✅ 페이지네이션 (항상 표시) -->
+          <div v-if="!loading" class="mt-8 space-y-4">
+            <!-- 페이지 입력 -->
+            <div class="flex justify-center items-center gap-2">
+              <span class="text-sm text-gray-600">페이지 이동:</span>
+              <input
+                v-model.number="pageInput"
+                type="number"
+                min="1"
+                :max="totalPages"
+                @keyup.enter="goToInputPage"
+                class="w-20 px-3 py-1 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:border-indigo-600"
+                placeholder="페이지"
+              />
               <button
-                v-if="page !== '...'"
-                @click="goToPage(page)"
-                class="px-4 py-2 rounded-lg border transition-colors"
-                :class="
-                  currentPage === page
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'border-gray-300 hover:bg-gray-50'
-                "
+                @click="goToInputPage"
+                class="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
               >
-                {{ page }}
+                이동
               </button>
-              <span v-else class="px-2 text-gray-500">...</span>
-            </template>
+            </div>
 
-            <!-- 다음 페이지 -->
-            <button
-              @click="goToPage(currentPage + 1)"
-              :disabled="currentPage === totalPages"
-              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+            <!-- 페이지 버튼들 -->
+            <div class="flex justify-center items-center gap-2">
+              <!-- 이전 페이지 -->
+              <button
+                @click="goToPage(currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              <!-- 페이지 번호들 -->
+              <template v-for="page in displayedPages" :key="page">
+                <button
+                  v-if="page !== '...'"
+                  @click="goToPage(page)"
+                  class="px-4 py-2 rounded-lg border transition-colors"
+                  :class="
+                    currentPage === page
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  "
+                >
+                  {{ page }}
+                </button>
+                <span v-else class="px-2 text-gray-500">...</span>
+              </template>
+
+              <!-- 다음 페이지 -->
+              <button
+                @click="goToPage(currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </main>
       </div>
@@ -501,35 +521,52 @@ const route = useRoute()
 const loading = ref(false)
 const loadingRecommend = ref(false)
 const totalCount = ref(0)
-const totalPages = ref(0)
+const totalPages = ref(1) // ✅ 기본값 1로 설정
 const currentPage = ref(1)
 const pageSize = ref(20)
-const userCode = ref(sessionStorage.getItem('accessToken') ? 'user' : null)
+const pageInput = ref(null)
 
+// ✅ 페이지네이션 로직 개선: 좌우 4개씩
 const displayedPages = computed(() => {
   const pages = []
-  const maxVisible = 5
+  const current = currentPage.value
+  const total = totalPages.value
 
-  if (totalPages.value <= maxVisible) {
-    for (let i = 1; i <= totalPages.value; i++) {
-      pages.push(i)
+  // 좌측 4개
+  const leftStart = Math.max(1, current - 4)
+  const leftEnd = current - 1
+
+  // 우측 4개
+  const rightStart = current + 1
+  const rightEnd = Math.min(total, current + 4)
+
+  // 1 추가
+  if (leftStart > 1) {
+    pages.push(1)
+    if (leftStart > 2) {
+      pages.push('...')
     }
-  } else {
-    if (currentPage.value <= 3) {
-      for (let i = 1; i <= 4; i++) pages.push(i)
+  }
+
+  // 좌측 페이지들
+  for (let i = leftStart; i <= leftEnd; i++) {
+    pages.push(i)
+  }
+
+  // 현재 페이지
+  pages.push(current)
+
+  // 우측 페이지들
+  for (let i = rightStart; i <= rightEnd; i++) {
+    pages.push(i)
+  }
+
+  // 마지막 페이지
+  if (rightEnd < total) {
+    if (rightEnd < total - 1) {
       pages.push('...')
-      pages.push(totalPages.value)
-    } else if (currentPage.value >= totalPages.value - 2) {
-      pages.push(1)
-      pages.push('...')
-      for (let i = totalPages.value - 3; i <= totalPages.value; i++) pages.push(i)
-    } else {
-      pages.push(1)
-      pages.push('...')
-      for (let i = currentPage.value - 1; i <= currentPage.value + 1; i++) pages.push(i)
-      pages.push('...')
-      pages.push(totalPages.value)
     }
+    pages.push(total)
   }
 
   return pages
@@ -549,7 +586,7 @@ const products = ref([])
 const recommendedProducts = ref([])
 const recommendType = ref(null)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(2)
+const itemsPerPage = ref(5) // ✅ 5개로 복원
 
 const displayedRecommendations = computed(() => {
   if (recommendedProducts.value.length === 0) return []
@@ -929,7 +966,7 @@ const fetchProducts = async (reset = false) => {
       const pageData = response.data.data
       products.value = pageData.items || []
       totalCount.value = pageData.totalItems || 0
-      totalPages.value = pageData.totalPages || 0
+      totalPages.value = pageData.totalPages || 1 // ✅ 최소값 1
       if (reset) currentPage.value = 1
     }
   } catch (error) {
@@ -947,6 +984,16 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const goToInputPage = () => {
+  const page = parseInt(pageInput.value)
+  if (!page || page < 1 || page > totalPages.value) {
+    alert(`1부터 ${totalPages.value}까지의 페이지를 입력해주세요.`)
+    return
+  }
+  goToPage(page)
+  pageInput.value = null
+}
+
 const onSortChange = () => {
   currentPage.value = 1
   updateURL()
@@ -956,7 +1003,7 @@ const onSortChange = () => {
 const fetchRecommendedProducts = async () => {
   loadingRecommend.value = true
   try {
-    const response = await recommendByUserView(userCode.value, 20)
+    const response = await recommendByUserView(20)
     if (response.data.success) {
       const data = response.data.data
       recommendedProducts.value = data.recommendSpecs || []

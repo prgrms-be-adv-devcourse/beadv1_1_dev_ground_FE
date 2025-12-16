@@ -25,12 +25,15 @@ export const searchProducts = (params = {}) => {
 }
 
 /**
- * 사용자 조회 기반 상품 추천 API
+ * ✅ 사용자 조회 기반 상품 추천 API (수정됨!)
+ * - Gateway가 access 헤더를 받아서 X-CODE로 변환
  */
-export const recommendByUserView = (userCode = null, size = 10) => {
+export const recommendByUserView = (size = 10) => {
+  const accessToken = sessionStorage.getItem('accessToken')
+
   const headers = {}
-  if (userCode) {
-    headers['X-CODE'] = userCode
+  if (accessToken) {
+    headers['access'] = accessToken // ✅ access 헤더 (Gateway가 X-CODE로 변환)
   }
 
   return axios.get('/api/products/recommend/user-view', {
