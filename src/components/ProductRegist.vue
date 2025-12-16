@@ -25,7 +25,7 @@
         <!-- 상품 이미지 -->
         <div class="bg-white rounded-xl shadow-sm p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">상품 이미지</h2>
-          <p class="text-sm text-gray-500 mb-4">최소 1장, 최대 10장까지 등록 가능합니다</p>
+          <p class="text-sm text-gray-500 mb-4">최대 10장까지 등록 가능합니다 (선택사항)</p>
 
           <div class="grid grid-cols-5 gap-4">
             <!-- 이미지 업로드 버튼 -->
@@ -254,7 +254,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { registProduct, uploadImageToS3, saveProductImages } from '@/api/product'
+import { registProduct, saveProductImages } from '@/api/product'
 import { getRootCategories, getChildCategories } from '@/api/category'
 
 const router = useRouter()
@@ -306,10 +306,8 @@ const handleCategory1Change = async () => {
   categoryNames.value = [selected.name]
 
   if (selected.isLeaf) {
-    // 리프 노드면 최종 선택 완료
     formData.value.categoryId = selected.id
   } else {
-    // 하위 카테고리 로드
     await fetchLevel2Categories(selected.id)
     formData.value.categoryId = null
   }
@@ -332,10 +330,8 @@ const handleCategory2Change = async () => {
   categoryNames.value = [...categoryNames.value.slice(0, 1), selected.name]
 
   if (selected.isLeaf) {
-    // 리프 노드면 최종 선택 완료
     formData.value.categoryId = selected.id
   } else {
-    // 하위 카테고리 로드
     await fetchLevel3Categories(selected.id)
     formData.value.categoryId = null
   }
@@ -429,7 +425,7 @@ const removeImage = (index) => {
   selectedImages.value.splice(index, 1)
 }
 
-// S3에 이미지 업로드
+// S3에 이미지 업로드 (fetch 사용 - CORS 이슈 방지)
 const uploadImagesToS3 = async (presignedUrls) => {
   const uploadedUrls = []
 
@@ -438,15 +434,26 @@ const uploadImagesToS3 = async (presignedUrls) => {
     const imageFile = selectedImages.value[i].file
 
     try {
-      // Presigned URL에서 쿼리 파라미터 제거한 실제 S3 URL 추출
+      // Presigned URL로 직접 PUT 요청 (fetch 사용)
+      const response = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: imageFile,
+        headers: {
+          'Content-Type': imageFile.type,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`이미지 업로드 실패: ${response.statusText}`)
+      }
+
+      // ? 앞부분까지만 잘라서 실제 S3 URL 추출
       const s3Url = presignedUrl.split('?')[0]
-
-      // S3에 이미지 업로드 (PUT 요청)
-      await uploadImageToS3(presignedUrl, imageFile)
-
       uploadedUrls.push(s3Url)
+
+      console.log(`✅ 이미지 ${i + 1} 업로드 성공`)
     } catch (error) {
-      console.error(`이미지 ${i + 1} 업로드 실패:`, error)
+      console.error(`❌ 이미지 ${i + 1} 업로드 실패:`, error)
       throw new Error(`이미지 업로드에 실패했습니다: ${imageFile.name}`)
     }
   }
@@ -466,17 +473,31 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    // 1. 상품 등록 API 호출
-    const imageExtensions = selectedImages.value.map((img) => img.extension)
+    // 1. 이미지 확장자 추출 (빈 확장자 제외)
+    let imageExtensions = null
+
+    if (selectedImages.value.length > 0) {
+      const validExtensions = selectedImages.value
+        .map((img) => img.extension)
+        .filter((ext) => ext && ext.trim() !== '')
+
+      // 🔹 유효한 확장자가 있을 때만 배열 설정, 없으면 null 유지
+      if (validExtensions.length > 0) {
+        imageExtensions = validExtensions
+      }
+    }
 
     const requestData = {
       categoryId: formData.value.categoryId,
       title: formData.value.title,
       description: formData.value.description,
       price: formData.value.price,
-      imageExtensions: imageExtensions.length > 0 ? imageExtensions : null,
+      imageExtensions: imageExtensions, // null 또는 유효한 배열
     }
 
+    console.log('📤 상품 등록 요청:', requestData)
+
+    // 2. 상품 등록 API 호출
     const registResponse = await registProduct(requestData)
 
     if (!registResponse.data.success) {
@@ -485,16 +506,20 @@ const handleSubmit = async () => {
 
     const { productCode, presignedUrls } = registResponse.data.data
 
-    // 2. 상품 상세 페이지로 즉시 이동
+    console.log('✅ 상품 등록 성공:', {
+      productCode,
+      presignedUrlCount: presignedUrls?.length || 0,
+    })
+
+    // 3. 상품 상세 페이지로 즉시 이동
     router.push(`/productdetail/${productCode}`)
 
-    // 3. 이미지가 있으면 백그라운드에서 S3 업로드 및 이미지 URL 저장
+    // 4. 이미지가 있으면 백그라운드에서 S3 업로드 및 이미지 URL 저장
     if (presignedUrls && presignedUrls.length > 0) {
-      // 비동기로 처리 (페이지 이동 후에도 계속 실행)
       uploadAndSaveImages(productCode, presignedUrls)
     }
   } catch (error) {
-    console.error('상품 등록 실패:', error)
+    console.error('❌ 상품 등록 실패:', error)
     alert(error.message || '상품 등록 중 오류가 발생했습니다.')
     isSubmitting.value = false
   }
@@ -503,15 +528,19 @@ const handleSubmit = async () => {
 // 이미지 업로드 및 저장 (백그라운드 처리)
 const uploadAndSaveImages = async (productCode, presignedUrls) => {
   try {
+    console.log('📤 S3 이미지 업로드 시작...')
+
     // S3에 이미지 업로드
     const uploadedUrls = await uploadImagesToS3(presignedUrls)
+
+    console.log('✅ S3 업로드 완료, 로컬 저장 요청 중...')
 
     // 로컬 이미지 저장 API 호출
     await saveProductImages(productCode, uploadedUrls)
 
-    console.log('이미지 업로드 및 저장 완료')
+    console.log('✅ 이미지 업로드 및 저장 완료')
   } catch (error) {
-    console.error('이미지 처리 실패:', error)
+    console.error('❌ 이미지 처리 실패:', error)
     // 이미지 처리 실패는 사용자에게 알리지 않음 (이미 페이지 이동했으므로)
   }
 }
