@@ -28,12 +28,15 @@
                 'w-full text-left px-6 py-4 flex items-center gap-3 transition-colors border-l-4',
                 selectedMenu === menu.id
                   ? 'bg-indigo-50 border-indigo-600 text-indigo-600 font-semibold'
-                  : 'border-transparent text-gray-700 hover:bg-gray-50'
+                  : 'border-transparent text-gray-700 hover:bg-gray-50',
               ]"
             >
               <span class="text-xl">{{ menu.icon }}</span>
               <span>{{ menu.label }}</span>
-              <span v-if="menu.badge" class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+              <span
+                v-if="menu.badge"
+                class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"
+              >
                 {{ menu.badge }}
               </span>
             </button>
@@ -59,11 +62,14 @@
                     'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
                     selectedOrderTab === tab.value
                       ? 'border-indigo-600 text-indigo-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                      : 'border-transparent text-gray-600 hover:text-gray-900',
                   ]"
                 >
                   {{ tab.label }}
-                  <span v-if="tab.count" class="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
+                  <span
+                    v-if="tab.count"
+                    class="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full"
+                  >
                     {{ tab.count }}
                   </span>
                 </button>
@@ -98,13 +104,15 @@
                         <span
                           :class="[
                             'px-3 py-1 rounded-full text-xs font-medium',
-                            getOrderStatusStyle(order.status)
+                            getOrderStatusStyle(order.status),
                           ]"
                         >
                           {{ getOrderStatusText(order.status) }}
                         </span>
                       </div>
-                      <p class="text-lg font-bold text-gray-900 mb-2">{{ formatPrice(order.price) }}원</p>
+                      <p class="text-lg font-bold text-gray-900 mb-2">
+                        {{ formatPrice(order.price) }}원
+                      </p>
                       <p class="text-xs text-gray-500 mb-3">{{ formatDate(order.date) }}</p>
                       <div class="flex gap-2">
                         <button
@@ -157,41 +165,41 @@
               <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
                   v-for="product in saleProducts"
-                  :key="product.id"
+                  :key="product.code"
                   class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
                 >
-                  <img
-                    :src="product.image"
-                    :alt="product.name"
-                    class="w-full h-48 object-cover"
-                  />
+                  <img :src="product.image" :alt="product.name" class="w-full h-48 object-cover" />
                   <div class="p-4">
                     <div class="flex justify-between items-start mb-2">
                       <h3 class="font-semibold text-gray-900">{{ product.name }}</h3>
                       <span
                         :class="[
                           'px-2 py-1 rounded text-xs font-medium',
-                          product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          product.status === 'active'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-700',
                         ]"
                       >
                         {{ product.status === 'active' ? '판매중' : '판매완료' }}
                       </span>
                     </div>
-                    <p class="text-lg font-bold text-indigo-600 mb-2">{{ formatPrice(product.price) }}원</p>
-                    <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                      <span>👁️ {{ product.views }}</span>
-                      <span>❤️ {{ product.likes }}</span>
-                      <span>💬 {{ product.chats }}</span>
-                    </div>
+                    <p class="text-lg font-bold text-indigo-600 mb-2">
+                      {{ formatPrice(product.price) }}원
+                    </p>
+                    <!--                    <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">-->
+                    <!--                      <span>👁️ {{ product.views }}</span>-->
+                    <!--                      <span>❤️ {{ product.likes }}</span>-->
+                    <!--                      <span>💬 {{ product.chats }}</span>-->
+                    <!--                    </div>-->
                     <div class="flex gap-2">
                       <button
-                        @click="editProduct(product.id)"
+                        @click="editProduct(product.code)"
                         class="flex-1 px-3 py-2 border border-gray-300 hover:bg-gray-50 text-sm font-medium rounded-lg transition-colors"
                       >
                         수정
                       </button>
                       <button
-                        @click="deleteProduct(product.id)"
+                        @click="deleteProduct(product.code)"
                         class="px-3 py-2 border border-red-300 hover:bg-red-50 text-red-600 text-sm font-medium rounded-lg transition-colors"
                       >
                         삭제
@@ -204,98 +212,98 @@
           </div>
 
           <!-- 찜한 상품 -->
-<!--          <div v-if="selectedMenu === 'likes'" class="bg-white rounded-xl shadow-sm">-->
-<!--            <div class="p-6 border-b border-gray-200">-->
-<!--              <h2 class="text-2xl font-bold text-gray-900">찜한 상품</h2>-->
-<!--            </div>-->
+          <!--          <div v-if="selectedMenu === 'likes'" class="bg-white rounded-xl shadow-sm">-->
+          <!--            <div class="p-6 border-b border-gray-200">-->
+          <!--              <h2 class="text-2xl font-bold text-gray-900">찜한 상품</h2>-->
+          <!--            </div>-->
 
-<!--            <div class="p-6">-->
-<!--              <div v-if="likedProducts.length === 0" class="text-center py-12">-->
-<!--                <div class="text-5xl mb-4">❤️</div>-->
-<!--                <p class="text-gray-600">찜한 상품이 없습니다</p>-->
-<!--              </div>-->
+          <!--            <div class="p-6">-->
+          <!--              <div v-if="likedProducts.length === 0" class="text-center py-12">-->
+          <!--                <div class="text-5xl mb-4">❤️</div>-->
+          <!--                <p class="text-gray-600">찜한 상품이 없습니다</p>-->
+          <!--              </div>-->
 
-<!--              <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">-->
-<!--                <div-->
-<!--                  v-for="product in likedProducts"-->
-<!--                  :key="product.id"-->
-<!--                  class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"-->
-<!--                >-->
-<!--                  <button-->
-<!--                    @click="unlikeProduct(product.id)"-->
-<!--                    class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"-->
-<!--                  >-->
-<!--                    <span class="text-red-500">❤️</span>-->
-<!--                  </button>-->
-<!--                  <img :src="product.image" :alt="product.name" class="w-full h-40 object-cover" />-->
-<!--                  <div class="p-3">-->
-<!--                    <h3 class="font-medium text-gray-900 text-sm mb-1 line-clamp-2">-->
-<!--                      {{ product.name }}-->
-<!--                    </h3>-->
-<!--                    <p class="text-base font-bold text-indigo-600">-->
-<!--                      {{ formatPrice(product.price) }}원-->
-<!--                    </p>-->
-<!--                  </div>-->
-<!--                </div>-->
-<!--              </div>-->
-<!--            </div>-->
-<!--          </div>-->
+          <!--              <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">-->
+          <!--                <div-->
+          <!--                  v-for="product in likedProducts"-->
+          <!--                  :key="product.code"-->
+          <!--                  class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"-->
+          <!--                >-->
+          <!--                  <button-->
+          <!--                    @click="unlikeProduct(product.code)"-->
+          <!--                    class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"-->
+          <!--                  >-->
+          <!--                    <span class="text-red-500">❤️</span>-->
+          <!--                  </button>-->
+          <!--                  <img :src="product.image" :alt="product.name" class="w-full h-40 object-cover" />-->
+          <!--                  <div class="p-3">-->
+          <!--                    <h3 class="font-medium text-gray-900 text-sm mb-1 line-clamp-2">-->
+          <!--                      {{ product.name }}-->
+          <!--                    </h3>-->
+          <!--                    <p class="text-base font-bold text-indigo-600">-->
+          <!--                      {{ formatPrice(product.price) }}원-->
+          <!--                    </p>-->
+          <!--                  </div>-->
+          <!--                </div>-->
+          <!--              </div>-->
+          <!--            </div>-->
+          <!--          </div>-->
 
           <!-- 리뷰 관리 -->
-<!--          <div v-if="selectedMenu === 'reviews'" class="bg-white rounded-xl shadow-sm">-->
-<!--            <div class="p-6 border-b border-gray-200">-->
-<!--              <h2 class="text-2xl font-bold text-gray-900">리뷰 관리</h2>-->
-<!--            </div>-->
+          <!--          <div v-if="selectedMenu === 'reviews'" class="bg-white rounded-xl shadow-sm">-->
+          <!--            <div class="p-6 border-b border-gray-200">-->
+          <!--              <h2 class="text-2xl font-bold text-gray-900">리뷰 관리</h2>-->
+          <!--            </div>-->
 
-<!--            <div class="p-6">-->
-<!--              <div v-if="reviews.length === 0" class="text-center py-12">-->
-<!--                <div class="text-5xl mb-4">⭐</div>-->
-<!--                <p class="text-gray-600">작성한 리뷰가 없습니다</p>-->
-<!--              </div>-->
+          <!--            <div class="p-6">-->
+          <!--              <div v-if="reviews.length === 0" class="text-center py-12">-->
+          <!--                <div class="text-5xl mb-4">⭐</div>-->
+          <!--                <p class="text-gray-600">작성한 리뷰가 없습니다</p>-->
+          <!--              </div>-->
 
-<!--              <div v-else class="space-y-4">-->
-<!--                <div-->
-<!--                  v-for="review in reviews"-->
-<!--                  :key="review.id"-->
-<!--                  class="border border-gray-200 rounded-xl p-4"-->
-<!--                >-->
-<!--                  <div class="flex justify-between items-start mb-3">-->
-<!--                    <div class="flex items-center gap-3">-->
-<!--                      <img-->
-<!--                        :src="review.productImage"-->
-<!--                        :alt="review.productName"-->
-<!--                        class="w-16 h-16 object-cover rounded-lg"-->
-<!--                      />-->
-<!--                      <div>-->
-<!--                        <h3 class="font-semibold text-gray-900 mb-1">{{ review.productName }}</h3>-->
-<!--                        <div class="flex items-center gap-1">-->
-<!--                          <span v-for="i in 5" :key="i" class="text-yellow-400">-->
-<!--                            {{ i <= review.rating ? '⭐' : '☆' }}-->
-<!--                          </span>-->
-<!--                        </div>-->
-<!--                      </div>-->
-<!--                    </div>-->
-<!--                    <span class="text-xs text-gray-500">{{ formatDate(review.date) }}</span>-->
-<!--                  </div>-->
-<!--                  <p class="text-sm text-gray-700 mb-3">{{ review.content }}</p>-->
-<!--                  <div class="flex gap-2">-->
-<!--                    <button-->
-<!--                      @click="editReview(review.id)"-->
-<!--                      class="text-sm text-gray-600 hover:text-indigo-600 transition-colors"-->
-<!--                    >-->
-<!--                      수정-->
-<!--                    </button>-->
-<!--                    <button-->
-<!--                      @click="deleteReview(review.id)"-->
-<!--                      class="text-sm text-gray-600 hover:text-red-600 transition-colors"-->
-<!--                    >-->
-<!--                      삭제-->
-<!--                    </button>-->
-<!--                  </div>-->
-<!--                </div>-->
-<!--              </div>-->
-<!--            </div>-->
-<!--          </div>-->
+          <!--              <div v-else class="space-y-4">-->
+          <!--                <div-->
+          <!--                  v-for="review in reviews"-->
+          <!--                  :key="review.id"-->
+          <!--                  class="border border-gray-200 rounded-xl p-4"-->
+          <!--                >-->
+          <!--                  <div class="flex justify-between items-start mb-3">-->
+          <!--                    <div class="flex items-center gap-3">-->
+          <!--                      <img-->
+          <!--                        :src="review.productImage"-->
+          <!--                        :alt="review.productName"-->
+          <!--                        class="w-16 h-16 object-cover rounded-lg"-->
+          <!--                      />-->
+          <!--                      <div>-->
+          <!--                        <h3 class="font-semibold text-gray-900 mb-1">{{ review.productName }}</h3>-->
+          <!--                        <div class="flex items-center gap-1">-->
+          <!--                          <span v-for="i in 5" :key="i" class="text-yellow-400">-->
+          <!--                            {{ i <= review.rating ? '⭐' : '☆' }}-->
+          <!--                          </span>-->
+          <!--                        </div>-->
+          <!--                      </div>-->
+          <!--                    </div>-->
+          <!--                    <span class="text-xs text-gray-500">{{ formatDate(review.date) }}</span>-->
+          <!--                  </div>-->
+          <!--                  <p class="text-sm text-gray-700 mb-3">{{ review.content }}</p>-->
+          <!--                  <div class="flex gap-2">-->
+          <!--                    <button-->
+          <!--                      @click="editReview(review.id)"-->
+          <!--                      class="text-sm text-gray-600 hover:text-indigo-600 transition-colors"-->
+          <!--                    >-->
+          <!--                      수정-->
+          <!--                    </button>-->
+          <!--                    <button-->
+          <!--                      @click="deleteReview(review.id)"-->
+          <!--                      class="text-sm text-gray-600 hover:text-red-600 transition-colors"-->
+          <!--                    >-->
+          <!--                      삭제-->
+          <!--                    </button>-->
+          <!--                  </div>-->
+          <!--                </div>-->
+          <!--              </div>-->
+          <!--            </div>-->
+          <!--          </div>-->
 
           <!-- 설정 -->
           <div v-if="selectedMenu === 'settings'" class="bg-white rounded-xl shadow-sm">
@@ -359,6 +367,8 @@
 import router from '@/router'
 import { ref, computed, onMounted } from 'vue'
 import { getUserInfo as fetchUserInfo } from '@/api/user'
+import { api } from '@/api'
+
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()
@@ -397,56 +407,28 @@ onMounted(() => {
 
 // 메뉴
 const menus = [
-  { id: 'orders', label: '거래 관리', icon: '📦', badge: 3 },
+  { id: 'orders', label: '거래 관리', icon: '📦', badge: null },
   { id: 'sales', label: '판매 관리', icon: '🏪', badge: null },
   // { id: 'likes', label: '찜한 상품', icon: '❤️', badge: null },
-  { id: 'reviews', label: '리뷰 관리', icon: '⭐', badge: null },
+  // { id: 'reviews', label: '리뷰 관리', icon: '⭐', badge: null },
   { id: 'settings', label: '설정', icon: '⚙️', badge: null },
 ]
 
 // 주문 탭
-const orderTabs = [
+const orderTabs = ref([
   { label: '전체', value: 'all', count: null },
-  { label: '입금대기', value: 'pending', count: 1 },
-  { label: '배송중', value: 'shipped', count: 2 },
+  { label: '입금대기', value: 'pending', count: null },
+  { label: '배송중', value: 'shipped', count: null },
   { label: '구매확정', value: 'completed', count: null },
-]
-
-// 더미 주문 데이터
-const orders = ref([
-  {
-    id: 1,
-    productName: '아이폰 15 Pro 256GB',
-    seller: '신뢰판매자',
-    price: 1350000,
-    status: 'shipped',
-    date: '2024-12-10',
-    image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop',
-  },
-  {
-    id: 2,
-    productName: '맥북 에어 M2',
-    seller: '애플샵',
-    price: 1450000,
-    status: 'pending',
-    date: '2024-12-11',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop',
-  },
-  {
-    id: 3,
-    productName: '에어팟 프로 2세대',
-    seller: '테크마켓',
-    price: 280000,
-    status: 'completed',
-    date: '2024-12-05',
-    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop',
-  },
 ])
+
+// 주문 데이터
+const orders = ref([])
 
 // 판매 상품
 const saleProducts = ref([
   {
-    id: 1,
+    code: 1,
     name: '갤럭시 S23 Ultra 512GB',
     price: 950000,
     status: 'active',
@@ -456,7 +438,7 @@ const saleProducts = ref([
     image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop',
   },
   {
-    id: 2,
+    code: 2,
     name: '아이패드 프로 11인치',
     price: 800000,
     status: 'active',
@@ -567,14 +549,23 @@ const goToRegister = () => {
   router.push('/register')
 }
 
-const editProduct = (productId) => {
-  console.log('상품 수정:', productId)
+const editProduct = (productCode) => {
+  console.log('상품 수정:', productCode)
+  //router.push('/')
 }
 
-const deleteProduct = (productId) => {
-  if (confirm('상품을 삭제하시겠습니까?')) {
-    console.log('상품 삭제:', productId)
-  }
+const deleteProduct = async (productCode) => {
+  const access = sessionStorage.getItem('accessToken')
+  if (!access) throw new Error('access 토큰이 없습니다.')
+
+  if (!confirm('상품을 삭제하시겠습니까?')) return
+
+  await api.delete(`/products/${productCode}`, {
+    headers: { access },
+    withCredentials: true,
+  })
+
+  await router.push("/profile")
 }
 
 // const unlikeProduct = (productId) => {
@@ -594,6 +585,7 @@ const deleteProduct = (productId) => {
 
 const changePassword = () => {
   console.log('비밀번호 변경')
+  router.addRoute('/changePwd')
 }
 
 const manageAccount = () => {
