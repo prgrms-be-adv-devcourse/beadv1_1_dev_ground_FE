@@ -12,18 +12,9 @@
         </button>
         <!-- Rooms -->
         <div class="w-1/3 border-r border-gray-200 flex flex-col">
-          <div class="p-4 border-b border-gray-200 flex items-center gap-2">
-            <input
-              v-model="userCode"
-              class="flex-1 h-10 px-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              placeholder="X-CODE / 사용자 코드"
-            />
-            <button
-              class="h-10 px-3 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition"
-              @click="loadRooms"
-            >
-              불러오기
-            </button>
+          <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div class="text-sm font-semibold text-gray-900">채팅방</div>
+            <div class="text-[12px] text-gray-500" v-if="!hasUserCode">로그인 후 이용 가능</div>
           </div>
           <div class="p-4 border-b border-gray-200 flex items-center gap-2">
             <input
@@ -38,6 +29,12 @@
               class="px-4 py-6 text-sm text-gray-500 flex items-center justify-center"
             >
               방 목록 불러오는 중...
+            </div>
+            <div
+              v-else-if="!hasUserCode"
+              class="px-4 py-6 text-sm text-gray-500 text-center"
+            >
+              로그인 후 채팅방을 볼 수 있습니다.
             </div>
             <div
               v-else-if="filteredRooms.length === 0"
@@ -125,11 +122,49 @@
                 v-for="(msg, idx) in messages"
                 :key="idx"
                 class="flex"
-                :class="msg.senderCode === userCode ? 'justify-end' : 'justify-start'"
+                :class="isMine(msg) ? 'justify-end' : 'justify-start'"
               >
                 <div
-                  class="flex items-end gap-2 w-full"
-                  :class="msg.senderCode === userCode ? 'flex-row-reverse' : 'flex-row'"
+                  v-if="isMine(msg)"
+                  class="flex items-end gap-2 w-full max-w-full justify-end"
+                >
+                  <div class="flex items-center pb-1">
+                    <span
+                      v-if="!(msg.read ?? msg.isRead)"
+                      class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-semibold text-indigo-600"
+                    >
+                      1
+                    </span>
+                  </div>
+                  <div class="flex flex-col max-w-[75%] items-end">
+                    <div class="text-xs font-semibold text-gray-600 mb-1 text-right">
+                      {{ getProfile(msg.senderCode).nickname || msg.senderCode }}
+                    </div>
+                    <div class="w-full rounded-2xl px-3 py-2 shadow-sm bg-indigo-600 text-white">
+                      <div class="text-sm whitespace-pre-wrap break-words">{{ msg.message }}</div>
+                      <div class="flex items-center justify-end gap-2 mt-1 text-[11px] opacity-70">
+                        <span>{{ msg.createdAt ? formatTime(msg.createdAt) : '' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-center">
+                    <div
+                      class="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-slate-100 to-indigo-100 flex items-center justify-center text-xs font-semibold text-gray-700 shadow-inner"
+                    >
+                      <img
+                        v-if="getProfile(msg.senderCode).profileImage"
+                        :src="getProfile(msg.senderCode).profileImage"
+                        alt="프로필 이미지"
+                        class="w-full h-full object-cover"
+                      />
+                      <span v-else>{{ getProfileInitial(msg.senderCode) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  v-else
+                  class="flex items-end gap-2 w-full max-w-full justify-start"
                 >
                   <div class="flex flex-col items-center">
                     <div
@@ -144,32 +179,13 @@
                       <span v-else>{{ getProfileInitial(msg.senderCode) }}</span>
                     </div>
                   </div>
-                  <div
-                    class="flex flex-col max-w-[75%]"
-                    :class="msg.senderCode === userCode ? 'items-end' : 'items-start'"
-                  >
-                    <div
-                      class="text-xs font-semibold text-gray-600 mb-1"
-                      :class="msg.senderCode === userCode ? 'text-right' : ''"
-                    >
+                  <div class="flex flex-col max-w-[75%] items-start">
+                    <div class="text-xs font-semibold text-gray-600 mb-1">
                       {{ getProfile(msg.senderCode).nickname || msg.senderCode }}
                     </div>
-                    <div
-                      class="w-full rounded-2xl px-3 py-2 shadow-sm"
-                      :class="
-                        msg.senderCode === userCode
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      "
-                    >
+                    <div class="w-full rounded-2xl px-3 py-2 shadow-sm bg-gray-100 text-gray-900">
                       <div class="text-sm whitespace-pre-wrap break-words">{{ msg.message }}</div>
                       <div class="flex items-center justify-end gap-2 mt-1 text-[11px] opacity-70">
-                        <span
-                          v-if="msg.senderCode === userCode && !(msg.read ?? msg.isRead)"
-                          class="inline-block w-4 text-center"
-                        >
-                          1
-                        </span>
                         <span>{{ msg.createdAt ? formatTime(msg.createdAt) : '' }}</span>
                       </div>
                     </div>
@@ -204,14 +220,54 @@
 <script setup>
 import { api } from '@/api'
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-api
 
 const props = defineProps({
   open: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'unread-update'])
 
-const userCode = ref('')
+const resolveStoredUserCode = () => {
+  const fromStorage =
+    sessionStorage.getItem('X-CODE') ||
+    localStorage.getItem('X-CODE') ||
+    sessionStorage.getItem('userCode') ||
+    localStorage.getItem('userCode')
+
+  if (fromStorage) return fromStorage
+
+  const accessToken =
+    sessionStorage.getItem('accessToken') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('access') ||
+    localStorage.getItem('access')
+
+  if (accessToken) {
+    try {
+      const payloadPart = accessToken.split('.')[1]
+      const decoded = JSON.parse(atob(payloadPart))
+      if (decoded?.userCode) return decoded.userCode
+    } catch (e) {
+      console.warn('액세스 토큰 디코드 실패', e)
+    }
+  }
+
+  const cookie = (document.cookie || '')
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('X-CODE='))
+  return cookie ? decodeURIComponent(cookie.split('=')[1]) : ''
+}
+
+const userCode = ref(resolveStoredUserCode() || '')
+const syncUserCode = () => {
+  const detected = resolveStoredUserCode()
+  if (detected && detected !== userCode.value) {
+    userCode.value = detected
+    sessionStorage.setItem('X-CODE', detected)
+    localStorage.setItem('X-CODE', detected)
+  }
+  return detected
+}
 const roomFilter = ref('')
 const rooms = ref([])
 const roomsLoading = ref(false)
@@ -226,6 +282,8 @@ const messageListRef = ref(null)
 const userProfiles = ref({})
 const loadingProfileCodes = new Set()
 const bottomAnchor = ref(null)
+
+const hasUserCode = computed(() => !!userCode.value.trim())
 
 const filteredRooms = computed(() => {
   const term = roomFilter.value.trim().toLowerCase()
@@ -263,6 +321,8 @@ const getCounterpartCode = (room) => {
   if (userCode.value && room.buyerCode === userCode.value) return room.sellerCode
   return room.sellerCode || room.buyerCode || ''
 }
+
+const isMine = (msg) => msg?.senderCode === userCode.value
 
 const loadUserProfile = async (code) => {
   if (!code || userProfiles.value[code] || loadingProfileCodes.has(code)) return
@@ -387,7 +447,7 @@ const connectStomp = async (chatId) => {
 }
 
 const loadRooms = async () => {
-  if (!userCode.value.trim()) return
+  if (!hasUserCode.value && !syncUserCode()) return
   roomsLoading.value = true
   try {
     const { data } = await api.get('/chat/rooms', {
@@ -444,7 +504,6 @@ const selectRoom = async (room) => {
   await loadMessages(room.id)
   connectStomp(room.id)
   scrollToBottom()
-
 }
 
 const sendMessage = () => {
@@ -475,6 +534,7 @@ watch(
   () => props.open,
   (val) => {
     if (val) {
+      syncUserCode()
       loadRooms()
     } else {
       selectedRoom.value = null
@@ -492,13 +552,9 @@ watch(
   { deep: true, flush: 'post' },
 )
 
-// onMounted(async () => {
-//   // 기본 X-CODE를 미리 채워놓고 싶다면 여기 설정
-//   const { data } = await api.get('/chat/test')
-//   console.log(data)
-//   console.warn(data)
-//   console.error(data)
-// })
+onMounted(() => {
+  syncUserCode()
+})
 
 onBeforeUnmount(() => {
   disconnectStomp()

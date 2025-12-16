@@ -14,6 +14,20 @@ const api = axios.create({
   },
 })
 
+api.interceptors.request.use((config) => {
+  const accessToken =
+    sessionStorage.getItem('accessToken') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('access') ||
+    localStorage.getItem('access')
+
+  if (accessToken) {
+    config.headers['access'] = accessToken
+  }
+
+  return config
+})
+
 // ✅ [변경] 매 요청마다 최신 X-CODE 주입
 api.interceptors.request.use((config) => {
   const code = sessionStorage.getItem('accessToken')

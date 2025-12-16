@@ -178,6 +178,13 @@ const balance = ref(0)
 const isLoggedIn = ref(false)
 const formattedBalance = computed(() => `${balance.value.toLocaleString('ko-KR')} 원`)
 
+// const isLoggedIn = ref(true)true
+
+const isLoggedIn = computed(() => {
+  const access = sessionStorage.getItem('accessToken')
+  return !!access;
+})
+
 // 메서드
 const goToCart = () => {
   console.log('장바구니로 이동')
