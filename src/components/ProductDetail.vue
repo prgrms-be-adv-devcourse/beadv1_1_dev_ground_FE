@@ -437,7 +437,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
+import { useCartStore } from '@/stores/cart'
 
+const cartStore = useCartStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -519,6 +521,8 @@ const handleChat = () => {
 const handleAddToCart = async () => {
   const confirmed = confirm('장바구니에 추가하시겠습니까?')
   if (confirmed) {
+    console.log(product.value)
+    cartStore.addItemToCart(product.value.productCode)
     alert('장바구니에 추가되었습니다.')
   }
 }
