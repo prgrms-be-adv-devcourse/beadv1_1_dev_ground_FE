@@ -47,6 +47,7 @@
         <div class="lg:col-span-3 space-y-6">
           <!-- 거래 관리 -->
           <div v-if="selectedMenu === 'orders'" class="bg-white rounded-xl shadow-sm">
+<<<<<<< Updated upstream
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-2xl font-bold text-gray-900">거래 관리</h2>
             </div>
@@ -134,6 +135,9 @@
                 </div>
               </div>
             </div>
+=======
+            <Order />
+>>>>>>> Stashed changes
           </div>
 
           <!-- 판매 관리 -->
@@ -320,18 +324,22 @@
 
 <script setup>
 import router from '@/router'
+<<<<<<< Updated upstream
 import { ref, computed, onMounted } from 'vue'
 import { getUserInfo as fetchUserInfo } from '@/api/user'
 import { getUserProducts as fetchUserProducts } from '@/api/product'
 import { api } from '@/api'
 
+=======
+import { ref } from 'vue'
+import Order from './Order.vue'
+>>>>>>> Stashed changes
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()
 
 // 상태 관리
 const selectedMenu = ref('orders')
-const selectedOrderTab = ref('all')
 
 // 사용자 정보
 const userInfo = ref({
@@ -439,6 +447,7 @@ const menus = [
   { id: 'settings', label: '설정', icon: '⚙️', badge: null },
 ]
 
+<<<<<<< Updated upstream
 // 주문 탭
 const orderTabs = ref([
   { label: '전체', value: 'all', count: null },
@@ -457,6 +466,74 @@ const filteredOrders = computed(() => {
   }
   return orders.value.filter((o) => o.status === selectedOrderTab.value)
 })
+=======
+// 판매 상품
+const saleProducts = ref([
+  {
+    id: 1,
+    name: '갤럭시 S23 Ultra 512GB',
+    price: 950000,
+    status: 'active',
+    views: 234,
+    likes: 45,
+    chats: 12,
+    image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop'
+  },
+  {
+    id: 2,
+    name: '아이패드 프로 11인치',
+    price: 800000,
+    status: 'active',
+    views: 156,
+    likes: 28,
+    chats: 8,
+    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
+  }
+])
+
+// 찜한 상품
+const likedProducts = ref([
+  {
+    id: 1,
+    name: '애플워치 시리즈 9',
+    price: 550000,
+    image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
+  },
+  {
+    id: 2,
+    name: '소니 WH-1000XM5',
+    price: 350000,
+    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop'
+  },
+  {
+    id: 3,
+    name: '닌텐도 스위치 OLED',
+    price: 380000,
+    image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop'
+  }
+])
+
+// 리뷰
+const reviews = ref([
+  {
+    id: 1,
+    productName: '아이폰 14 Pro',
+    productImage: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop',
+    rating: 5,
+    content: '상태 정말 좋고 판매자님도 친절하세요. 안전거래로 믿고 샀습니다!',
+    date: '2024-12-08'
+  },
+  {
+    id: 2,
+    productName: '갤럭시 버즈2 프로',
+    productImage: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
+    rating: 4,
+    content: '가성비 좋은 거래였습니다. 추천해요!',
+    date: '2024-12-01'
+  }
+])
+
+>>>>>>> Stashed changes
 
 // 메서드
 const formatPrice = (price) => {
@@ -468,6 +545,7 @@ const formatDate = (dateString) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
 }
 
+<<<<<<< Updated upstream
 const getOrderStatusStyle = (status) => {
   const styles = {
     pending: 'bg-yellow-100 text-yellow-700',
@@ -486,10 +564,13 @@ const getOrderStatusText = (status) => {
   return texts[status] || '알 수 없음'
 }
 
+=======
+>>>>>>> Stashed changes
 const editProfile = () => {
   console.log('프로필 수정')
 }
 
+<<<<<<< Updated upstream
 const confirmOrder = async (orderCode) => {
   if (confirm('구매를 확정하시겠습니까?')) {
     console.log('구매 확정:', orderCode)
@@ -511,6 +592,8 @@ const viewOrderDetail = (orderCode) => {
   console.log('주문 상세:', orderCode)
 }
 
+=======
+>>>>>>> Stashed changes
 const goToRegister = () => {
   console.log('상품 등록 페이지로 이동')
   router.push('/register')

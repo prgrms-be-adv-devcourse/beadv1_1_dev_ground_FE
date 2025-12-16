@@ -5,6 +5,7 @@ import { api } from "."
 export const getCart = async () => {
     try {
         const { data } = await api.get('/commerce')
+        console.log(data)
         return data.data
     } catch (error) {
         console.log(error)
@@ -17,8 +18,10 @@ export const addCartItem = async (productCode) => {
         const { data } = await api.post('/commerce', {
             "productCode": productCode
         })
-        return data.data
+        console.log(data)
+        return data
     } catch (error) {
+        alert(error.response.data.msg.split(" : ")[1])
         console.log(error)
     }
 }
@@ -36,8 +39,7 @@ export const getRecommendCartItems = async () => {
 // 장바구니 상품 삭제(개별)
 export const deleteCartItem = async (productCode) => {
     try {
-        const { data } = await api.delete(`/commerce/cart/delete/${productCode}`)
-        return data.data
+        await api.delete(`/commerce/cart/delete/${productCode}`)
     } catch (error) {
         console.log(error)
     }
@@ -46,10 +48,11 @@ export const deleteCartItem = async (productCode) => {
 // 장바구니 상품 삭제(선택)
 export const deleteSelectCartItems = async (productCodes) => {
     try {
-        const { data } = await api.delete('/commerce/cart/deleteSel', {
-            "cartProductCodes": productCodes
+        await api.delete('/commerce/cart/deleteSel', {
+            data: {
+                "cartProductCodes": productCodes
+            }
         })
-        return data.data
     } catch (error) {
         console.log(error)
     }
@@ -58,8 +61,7 @@ export const deleteSelectCartItems = async (productCodes) => {
 // 장바구니 상품 삭제(전체)
 export const deleteAllCartItems = async () => {
     try {
-        const { data } = await api.delete('/commerce/cart/deleteAll')
-        return data.data
+        await api.delete('/commerce/cart/deleteAll')
     } catch (error) {
         console.log(error)
     }

@@ -4,7 +4,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex items-center gap-4">
         <!-- 로고 -->
-        <a href="/public" class="flex items-center gap-2 flex-shrink-0">
+        <a href="/" class="flex items-center gap-2 flex-shrink-0">
           <div
             class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center"
           >
@@ -177,13 +177,13 @@ const isLoggedIn = ref(true)
 const goToCart = () => {
   console.log('장바구니로 이동')
   showMobileMenu.value = false
-  router.push('cart')
+  router.push('/cart')
 }
 
 const goToMyPage = () => {
   console.log('마이페이지로 이동')
   showMobileMenu.value = false
-  // router.push('/mypage')
+  router.push('/profile')
 }
 
 const goToSell = () => {
