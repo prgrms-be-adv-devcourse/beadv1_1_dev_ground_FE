@@ -3,7 +3,6 @@
     <!-- 검색바 (sticky) -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <!-- ✅ search-container 클래스 추가 -->
         <div class="search-container relative">
           <input
             v-model="searchKeyword"
@@ -44,7 +43,6 @@
             </svg>
           </button>
 
-          <!-- ✅ 자동완성 드롭다운 -->
           <div
             v-if="showSuggestions && suggestions.length > 0"
             class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[60] max-h-60 overflow-y-auto"
@@ -60,7 +58,6 @@
           </div>
         </div>
 
-        <!-- 연관 검색어 태그 -->
         <div v-if="relatedKeywords.length > 0" class="mt-3 flex flex-wrap gap-2">
           <span class="text-xs text-gray-500">연관 검색어:</span>
           <button
@@ -75,12 +72,10 @@
       </div>
     </div>
 
-    <!-- 추천 상품 슬라이더 -->
-    <div class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">
-          🔥 {{ userCode ? '회원님을 위한 추천' : '인기 상품 추천' }}
-        </h2>
+    <!-- 추천 상품 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 {{ recommendTitle }}</h2>
 
         <div v-if="loadingRecommend" class="flex justify-center py-8">
           <div
@@ -88,18 +83,36 @@
           ></div>
         </div>
 
-        <div v-else-if="recommendedProducts.length > 0" class="relative overflow-hidden">
-          <div
-            class="flex gap-4"
-            :style="{ transform: `translateX(-${slideOffset}px)`, transition: 'none' }"
+        <div v-else-if="recommendedProducts.length > 0" class="relative">
+          <!-- 왼쪽 버튼 -->
+          <button
+            v-if="recommendedProducts.length > itemsPerPage"
+            @click="previousPage"
+            class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
           >
+            <svg
+              class="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+
+          <!-- 상품 그리드 (2열) -->
+          <div class="grid grid-cols-2 gap-4">
             <div
-              v-for="(item, index) in slidingRecommendedProducts"
+              v-for="(item, index) in displayedRecommendations"
               :key="`rec-${index}`"
               @click="goToProduct(item.productCode)"
-              class="flex-shrink-0 w-40 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
+              class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
             >
-              <!-- ✅ 수정: placeholder 제거, 기본 이미지로 대체 -->
               <div class="w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img
                   v-if="item.thumbnailUrl"
@@ -124,6 +137,27 @@
               </div>
             </div>
           </div>
+
+          <!-- 오른쪽 버튼 -->
+          <button
+            v-if="recommendedProducts.length > itemsPerPage"
+            @click="nextPage"
+            class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+          >
+            <svg
+              class="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
         </div>
 
         <div v-else class="bg-gray-50 rounded-lg p-12 text-center">
@@ -313,8 +347,8 @@
             </select>
           </div>
 
-          <!-- 상품 카드 그리드 -->
-          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- 상품 카드 그리드 (고정 2열) -->
+          <div class="grid grid-cols-2 gap-4">
             <div
               v-for="product in products"
               :key="product.productCode"
@@ -322,7 +356,6 @@
               class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
             >
               <div class="relative">
-                <!-- ✅ 수정: placeholder 제거 -->
                 <div
                   class="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden"
                 >
@@ -391,12 +424,58 @@
             <p class="text-gray-500 text-lg">검색 결과가 없습니다.</p>
           </div>
 
-          <div v-if="!loading && hasMore" class="mt-8 text-center">
+          <!-- 페이지네이션 -->
+          <div
+            v-if="!loading && totalPages > 1"
+            class="mt-8 flex justify-center items-center gap-2"
+          >
+            <!-- 이전 페이지 -->
             <button
-              @click="loadMore"
-              class="px-8 py-3 bg-white border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 rounded-xl font-semibold"
+              @click="goToPage(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              더 보기
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+
+            <!-- 페이지 번호들 -->
+            <template v-for="page in displayedPages" :key="page">
+              <button
+                v-if="page !== '...'"
+                @click="goToPage(page)"
+                class="px-4 py-2 rounded-lg border transition-colors"
+                :class="
+                  currentPage === page
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'border-gray-300 hover:bg-gray-50'
+                "
+              >
+                {{ page }}
+              </button>
+              <span v-else class="px-2 text-gray-500">...</span>
+            </template>
+
+            <!-- 다음 페이지 -->
+            <button
+              @click="goToPage(currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </button>
           </div>
         </main>
@@ -406,7 +485,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   searchProducts,
@@ -422,10 +501,39 @@ const route = useRoute()
 const loading = ref(false)
 const loadingRecommend = ref(false)
 const totalCount = ref(0)
-const hasMore = ref(true)
+const totalPages = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
-const userCode = ref(sessionStorage.getItem('X-CODE') || null)
+const userCode = ref(sessionStorage.getItem('accessToken') ? 'user' : null)
+
+const displayedPages = computed(() => {
+  const pages = []
+  const maxVisible = 5
+
+  if (totalPages.value <= maxVisible) {
+    for (let i = 1; i <= totalPages.value; i++) {
+      pages.push(i)
+    }
+  } else {
+    if (currentPage.value <= 3) {
+      for (let i = 1; i <= 4; i++) pages.push(i)
+      pages.push('...')
+      pages.push(totalPages.value)
+    } else if (currentPage.value >= totalPages.value - 2) {
+      pages.push(1)
+      pages.push('...')
+      for (let i = totalPages.value - 3; i <= totalPages.value; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      pages.push('...')
+      for (let i = currentPage.value - 1; i <= currentPage.value + 1; i++) pages.push(i)
+      pages.push('...')
+      pages.push(totalPages.value)
+    }
+  }
+
+  return pages
+})
 
 const sortOption = ref('createdAt-desc')
 const sortBy = computed(() => sortOption.value.split('-')[0])
@@ -439,29 +547,41 @@ const currentCategoryName = ref('')
 const products = ref([])
 
 const recommendedProducts = ref([])
-const slideOffset = ref(0)
-const slideInterval = ref(null)
-const SLIDE_SPEED = 1
-const CARD_WIDTH = 176
+const recommendType = ref(null)
+const currentRecommendPage = ref(0)
+const itemsPerPage = ref(2)
+
+const displayedRecommendations = computed(() => {
+  if (recommendedProducts.value.length === 0) return []
+
+  const start = currentRecommendPage.value * itemsPerPage.value
+  const end = start + itemsPerPage.value
+
+  return recommendedProducts.value.slice(start, end)
+})
+
+const nextPage = () => {
+  const totalPages = Math.ceil(recommendedProducts.value.length / itemsPerPage.value)
+  currentRecommendPage.value = (currentRecommendPage.value + 1) % totalPages
+}
+
+const previousPage = () => {
+  const totalPages = Math.ceil(recommendedProducts.value.length / itemsPerPage.value)
+  currentRecommendPage.value = (currentRecommendPage.value - 1 + totalPages) % totalPages
+}
 
 const searchKeyword = ref('')
 const committedKeyword = ref('')
 
-// ✅ [변경] suggestions는 "문자열 배열"로 유지하되,
-// 백엔드 응답(ProductSuggestResponse.suggestions: SuggestOption[])에서 text만 뽑아서 채움
 const suggestions = ref([])
 const showSuggestions = ref(false)
 const relatedKeywords = ref([])
 let suggestionTimeout = null
 
-// ✅ [변경] 디바운스 시간 (0.5~1초 범위)
 const SUGGEST_DEBOUNCE_MS = 700
-
-// ✅ [변경] 레이스 컨디션 방지용 시퀀스 (빠르게 입력하면 이전 응답 무시)
 let suggestRequestSeq = 0
 
 const isComposing = ref(false)
-
 let suggestAbortController = null
 
 const abortSuggestRequest = () => {
@@ -484,9 +604,11 @@ const hasActiveFilters = computed(() => {
   return committedKeyword.value || minPrice.value || maxPrice.value || currentCategoryId.value
 })
 
-const slidingRecommendedProducts = computed(() => {
-  if (recommendedProducts.value.length === 0) return []
-  return [...recommendedProducts.value, ...recommendedProducts.value, ...recommendedProducts.value]
+const recommendTitle = computed(() => {
+  if (recommendType.value === 'USER_VIEW_HISTORY') {
+    return '회원님을 위한 추천'
+  }
+  return '인기 상품 추천'
 })
 
 const formatPrice = (price) => (price ? price.toLocaleString('ko-KR') : '0')
@@ -496,7 +618,6 @@ const getProductStatusText = (status) => {
   return statusMap[status] || status
 }
 
-// ✅ 이미지 에러 처리 (placeholder 대신 숨김)
 const handleImageError = (e) => {
   e.target.style.display = 'none'
 }
@@ -540,17 +661,12 @@ const handleCompositionEnd = (e) => {
   handleSearchInput(e)
 }
 
-// ✅ [변경] 타이핑 멈추면 자동완성 호출 (0.7s debounce)
-// - prefix 파라미터 ❌ -> keyword ✅
-// - 응답은 ProductSuggestResponse -> suggestions[].text만 사용
 const handleSearchInput = (e) => {
   if (suggestionTimeout) clearTimeout(suggestionTimeout)
 
   const raw = (e?.target?.value ?? searchKeyword.value ?? '').toString()
   const keyword = raw.trim()
 
-  console.log(keyword)
-  // 빈 값이면 초기화
   if (keyword.length === 0) {
     abortSuggestRequest()
     suggestions.value = []
@@ -567,15 +683,13 @@ const handleSearchInput = (e) => {
     suggestAbortController = new AbortController()
 
     try {
-      // ✅ [변경] 백엔드 요청 파라미터 이름에 맞춤: keyword
       const response = await suggestCompletion({
-        keyword, // ✅ 중요
+        keyword,
         size: 5,
         categoryId: currentCategoryId.value ?? null,
-        includeSold: false, // 필요하면 명시
+        includeSold: false,
         signal: suggestAbortController.signal,
       })
-      console.log('응답:', response)
 
       if (mySeq !== suggestRequestSeq) return
 
@@ -586,9 +700,6 @@ const handleSearchInput = (e) => {
       }
 
       const data = response.data.data
-
-      // ✅ [변경] ProductSuggestResponse.suggestions: SuggestOption[]
-      // -> text만 뽑아서 문자열 배열로 변환
       const texts = Array.isArray(data?.suggestions)
         ? data.suggestions.map((o) => o?.text).filter(Boolean)
         : []
@@ -611,7 +722,6 @@ const handleSearchFocus = () => {
   }
 }
 
-// ✅ [변경] 드롭다운 클릭 시: 검색어 반영 + 검색 실행 + 연관검색어 호출
 const selectSuggestion = async (suggestion) => {
   searchKeyword.value = suggestion
   committedKeyword.value = suggestion
@@ -646,7 +756,6 @@ const clearSearch = async () => {
   await applyFilters()
 }
 
-// ✅ [변경] 연관검색어 응답도 ProductSuggestResponse이므로 suggestions[].text로 파싱
 const fetchRelatedKeywords = async () => {
   if (!committedKeyword.value) {
     relatedKeywords.value = []
@@ -657,8 +766,6 @@ const fetchRelatedKeywords = async () => {
     const response = await suggestRelated({
       keyword: committedKeyword.value,
       size: 5,
-      // (선택) categoryId: currentCategoryId.value ?? null,
-      // includeSold: false,
     })
 
     if (!response?.data?.success) {
@@ -671,7 +778,6 @@ const fetchRelatedKeywords = async () => {
       ? data.suggestions.map((o) => o?.text).filter(Boolean)
       : []
 
-    // 중복 제거 + 자기 자신 키워드 제거(선택)
     const uniq = [...new Set(texts)].filter((t) => t !== committedKeyword.value)
 
     relatedKeywords.value = uniq
@@ -821,9 +927,9 @@ const fetchProducts = async (reset = false) => {
 
     if (response.data.success) {
       const pageData = response.data.data
-      products.value = reset ? pageData.items || [] : [...products.value, ...(pageData.items || [])]
+      products.value = pageData.items || []
       totalCount.value = pageData.totalItems || 0
-      hasMore.value = pageData.currentPageNumber < pageData.totalPages
+      totalPages.value = pageData.totalPages || 0
       if (reset) currentPage.value = 1
     }
   } catch (error) {
@@ -833,15 +939,18 @@ const fetchProducts = async (reset = false) => {
   }
 }
 
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  updateURL()
+  fetchProducts(false)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 const onSortChange = () => {
   currentPage.value = 1
   updateURL()
   fetchProducts(true)
-}
-
-const loadMore = () => {
-  currentPage.value += 1
-  fetchProducts(false)
 }
 
 const fetchRecommendedProducts = async () => {
@@ -849,7 +958,9 @@ const fetchRecommendedProducts = async () => {
   try {
     const response = await recommendByUserView(userCode.value, 20)
     if (response.data.success) {
-      recommendedProducts.value = response.data.data.recommendSpecs || []
+      const data = response.data.data
+      recommendedProducts.value = data.recommendSpecs || []
+      recommendType.value = data.recommendType || null
     }
   } catch (error) {
     console.error('추천 상품 조회 실패:', error)
@@ -858,27 +969,10 @@ const fetchRecommendedProducts = async () => {
   }
 }
 
-const startSliding = () => {
-  if (recommendedProducts.value.length === 0) return
-  slideInterval.value = setInterval(() => {
-    slideOffset.value += SLIDE_SPEED
-    const oneSetWidth = recommendedProducts.value.length * CARD_WIDTH
-    if (slideOffset.value >= oneSetWidth) slideOffset.value = 0
-  }, 16)
-}
-
-const stopSliding = () => {
-  if (slideInterval.value) {
-    clearInterval(slideInterval.value)
-    slideInterval.value = null
-  }
-}
-
 const goToProduct = (productCode) => {
   router.push(`/productdetail/${productCode}`)
 }
 
-// ✅ 외부 클릭 시 드롭다운 닫기
 const handleClickOutside = (e) => {
   const searchContainer = e.target.closest('.search-container')
   if (!searchContainer) {
@@ -895,18 +989,15 @@ onMounted(async () => {
     fetchRelatedKeywords()
   }
 
-  startSliding()
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  stopSliding()
   if (suggestionTimeout) clearTimeout(suggestionTimeout)
   abortSuggestRequest()
   document.removeEventListener('click', handleClickOutside)
 })
 
-// URL 동기화
 watch(
   () => route.query,
   () => {

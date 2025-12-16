@@ -57,7 +57,7 @@
 
     <!-- 메인 콘텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
         <!-- 왼쪽: 이미지 영역 -->
         <div class="space-y-4">
           <!-- 메인 이미지 -->
@@ -87,30 +87,42 @@
             </div>
           </div>
 
-          <!-- 썸네일 슬라이더 -->
-          <div
-            v-if="product.imageUrls && product.imageUrls.length > 1"
-            class="bg-white rounded-xl p-4 shadow"
-          >
+          <!-- 썸네일 슬라이더 (항상 표시) -->
+          <div class="bg-white rounded-xl p-4 shadow">
             <div class="flex gap-2 overflow-x-auto pb-2">
-              <button
-                v-for="(imageUrl, index) in product.imageUrls"
-                :key="index"
-                @click="selectedImageIndex = index"
-                class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all"
-                :class="
-                  selectedImageIndex === index
-                    ? 'border-indigo-600 ring-2 ring-indigo-200'
-                    : 'border-gray-200 hover:border-gray-300'
-                "
-              >
-                <img
-                  :src="imageUrl"
-                  :alt="`${product.title} ${index + 1}`"
-                  class="w-full h-full object-cover"
-                  @error="handleThumbnailError"
-                />
-              </button>
+              <template v-if="product.imageUrls && product.imageUrls.length > 0">
+                <button
+                  v-for="(imageUrl, index) in product.imageUrls"
+                  :key="index"
+                  @click="selectedImageIndex = index"
+                  class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all"
+                  :class="
+                    selectedImageIndex === index
+                      ? 'border-indigo-600 ring-2 ring-indigo-200'
+                      : 'border-gray-200 hover:border-gray-300'
+                  "
+                >
+                  <img
+                    :src="imageUrl"
+                    :alt="`${product.title} ${index + 1}`"
+                    class="w-full h-full object-cover"
+                    @error="handleThumbnailError"
+                  />
+                </button>
+              </template>
+              <template v-else>
+                <div
+                  class="flex-shrink-0 w-20 h-20 rounded-lg border-2 border-indigo-600 ring-2 ring-indigo-200 bg-gray-100 flex items-center justify-center"
+                >
+                  <svg class="w-10 h-10 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -143,7 +155,6 @@
               <!-- 거래정보 탭 -->
               <div v-if="activeTab === 'info'">
                 <div class="space-y-4">
-                  <!-- 상품 상태 -->
                   <div class="bg-gray-50 rounded-lg p-4">
                     <div class="flex items-center justify-between">
                       <span class="text-sm font-medium text-gray-600">상품 상태</span>
@@ -160,7 +171,6 @@
                     </div>
                   </div>
 
-                  <!-- 카테고리 -->
                   <div class="bg-gray-50 rounded-lg p-4">
                     <div class="flex items-center justify-between">
                       <span class="text-sm font-medium text-gray-600">카테고리</span>
@@ -170,7 +180,6 @@
                     </div>
                   </div>
 
-                  <!-- 등록일 -->
                   <div class="bg-gray-50 rounded-lg p-4">
                     <div class="flex items-center justify-between">
                       <span class="text-sm font-medium text-gray-600">등록일</span>
@@ -185,11 +194,11 @@
           </div>
         </div>
 
-        <!-- 오른쪽: 상품 정보 -->
-        <div class="space-y-6">
+        <!-- 오른쪽: 상품 정보 (고정 높이) -->
+        <div class="lg:sticky lg:top-24 lg:self-start">
           <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
             <!-- 판매자 정보 -->
-            <div class="flex items-center gap-3 pb-6 border-b">
+            <div class="flex items-center gap-3 pb-6 border-b border-gray-200">
               <div
                 class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
               >
@@ -215,13 +224,12 @@
             </div>
 
             <!-- 가격 -->
-            <div class="py-6 border-t border-b border-gray-200">
+            <div>
               <p class="text-3xl font-bold text-indigo-600">{{ formatPrice(product.price) }}원</p>
             </div>
 
             <!-- 버튼 영역 -->
             <div class="space-y-3 pt-4">
-              <!-- 채팅하기 + 장바구니 -->
               <div class="grid grid-cols-2 gap-3">
                 <button
                   @click="handleChat"
@@ -253,7 +261,6 @@
                 </button>
               </div>
 
-              <!-- 주문하기 -->
               <button
                 @click="handleBuyNow"
                 class="w-full py-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors text-lg"
@@ -261,65 +268,78 @@
                 주문하기
               </button>
             </div>
+
+            <!-- 안전거래 안내 (버튼 아래) -->
+            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+              <div class="flex items-start gap-3">
+                <svg
+                  class="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <h3 class="text-sm font-semibold text-indigo-900 mb-2">안전거래 안내</h3>
+                  <ul class="space-y-1.5 text-xs text-indigo-700">
+                    <li class="flex items-center gap-2">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      구매자 보호 프로그램
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      예치금 결제 시스템
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      거래 완료 후 정산
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- 비슷한 상품 추천 -->
-      <div v-if="recommendations.length > 0" class="mt-16">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">비슷한 상품</h2>
+      <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 이 상품과 비슷한 상품</h2>
+
+        <div v-if="loadingRecommend" class="flex justify-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"
+          ></div>
         </div>
 
-        <div class="relative">
-          <!-- 슬라이더 컨테이너 -->
-          <div class="overflow-hidden">
-            <div
-              class="flex transition-transform duration-300 ease-in-out gap-4"
-              :style="{ transform: `translateX(-${currentSlide * slideWidth}px)` }"
-            >
-              <div
-                v-for="item in recommendations"
-                :key="item.productCode"
-                @click="goToProduct(item.productCode)"
-                class="flex-shrink-0 bg-white rounded-xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-                :style="{ width: `${cardWidth}px` }"
-              >
-                <!-- 상품 이미지 -->
-                <div class="aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
-                  <img
-                    v-if="item.thumbnailUrl"
-                    :src="item.thumbnailUrl"
-                    :alt="item.title"
-                    class="w-full h-full object-cover"
-                    @error="handleRecommendImageError"
-                  />
-                  <div v-else class="w-full h-full flex items-center justify-center">
-                    <svg class="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fill-rule="evenodd"
-                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                <!-- 상품 정보 -->
-                <div class="p-4">
-                  <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 h-12">
-                    {{ item.title }}
-                  </h3>
-                  <p class="text-lg font-bold text-indigo-600">{{ formatPrice(item.price) }}원</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 이전 버튼 -->
+        <div v-else-if="recommendedProducts.length > 0" class="relative">
+          <!-- 왼쪽 버튼 -->
           <button
-            @click="prevSlide"
-            class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+            v-if="recommendedProducts.length > itemsPerPage"
+            @click="previousPage"
+            class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
           >
             <svg
               class="w-6 h-6 text-gray-600"
@@ -336,10 +356,44 @@
             </svg>
           </button>
 
-          <!-- 다음 버튼 -->
+          <!-- 상품 그리드 (2열) -->
+          <div class="grid grid-cols-2 gap-4">
+            <div
+              v-for="(item, index) in displayedRecommendations"
+              :key="`rec-${index}`"
+              @click="goToProduct(item.productCode)"
+              class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
+            >
+              <div class="w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="item.thumbnailUrl"
+                  :src="item.thumbnailUrl"
+                  :alt="item.title"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                />
+                <svg v-else class="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div class="p-3">
+                <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                  {{ item.title }}
+                </h3>
+                <p class="text-base font-bold text-indigo-600">{{ formatPrice(item.price) }}원</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 오른쪽 버튼 -->
           <button
-            @click="nextSlide"
-            class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+            v-if="recommendedProducts.length > itemsPerPage"
+            @click="nextPage"
+            class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
           >
             <svg
               class="w-6 h-6 text-gray-600"
@@ -356,13 +410,30 @@
             </svg>
           </button>
         </div>
+
+        <div v-else class="bg-gray-50 rounded-lg p-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-gray-400 mb-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+            />
+          </svg>
+          <p class="text-gray-600">추천할 상품이 없습니다</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
@@ -376,18 +447,34 @@ const product = ref({})
 const currentUser = ref(null)
 const selectedImageIndex = ref(0)
 const activeTab = ref('detail')
-const recommendations = ref([])
-const currentSlide = ref(0)
+const recommendedProducts = ref([])
+const loadingRecommend = ref(false)
+const currentRecommendPage = ref(0)
+const itemsPerPage = ref(2)
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
   { id: 'info', name: '거래정보' },
 ]
 
-// 슬라이더 설정
-const cardWidth = 280 // 카드 너비
-const gap = 16 // gap-4 = 16px
-const slideWidth = computed(() => cardWidth + gap)
+const displayedRecommendations = computed(() => {
+  if (recommendedProducts.value.length === 0) return []
+
+  const start = currentRecommendPage.value * itemsPerPage.value
+  const end = start + itemsPerPage.value
+
+  return recommendedProducts.value.slice(start, end)
+})
+
+const nextPage = () => {
+  const totalPages = Math.ceil(recommendedProducts.value.length / itemsPerPage.value)
+  currentRecommendPage.value = (currentRecommendPage.value + 1) % totalPages
+}
+
+const previousPage = () => {
+  const totalPages = Math.ceil(recommendedProducts.value.length / itemsPerPage.value)
+  currentRecommendPage.value = (currentRecommendPage.value - 1 + totalPages) % totalPages
+}
 
 const formatPrice = (price) => (price ? price.toLocaleString('ko-KR') : '0')
 
@@ -408,7 +495,7 @@ const handleThumbnailError = (e) => {
   e.target.parentElement.style.display = 'none'
 }
 
-const handleRecommendImageError = (e) => {
+const handleImageError = (e) => {
   e.target.style.display = 'none'
 }
 
@@ -433,22 +520,7 @@ const handleBuyNow = () => {
 
 const goToProduct = (productCode) => {
   router.push(`/productDetail/${productCode}`)
-  // 페이지 새로고침하여 새 상품 로드
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-  fetchProductDetail()
-  fetchRecommendations()
-}
-
-// 무한 슬라이딩
-const nextSlide = () => {
-  if (recommendations.value.length === 0) return
-  currentSlide.value = (currentSlide.value + 1) % recommendations.value.length
-}
-
-const prevSlide = () => {
-  if (recommendations.value.length === 0) return
-  currentSlide.value =
-    currentSlide.value === 0 ? recommendations.value.length - 1 : currentSlide.value - 1
+  window.location.reload()
 }
 
 const fetchProductDetail = async () => {
@@ -457,25 +529,18 @@ const fetchProductDetail = async () => {
     error.value = null
 
     const productCode = route.params.productCode
-    console.log('[상품 상세] productCode:', productCode)
-
     if (!productCode) {
       throw new Error('상품 코드가 없습니다.')
     }
 
     const accessToken = sessionStorage.getItem('accessToken')
-    console.log('[상품 상세] accessToken:', accessToken ? '있음' : '없음')
-
     if (!accessToken) {
       throw new Error('로그인이 필요합니다.')
     }
 
     const response = await getProductDetail(productCode)
-    console.log('[상품 상세] API 응답:', response.data)
-
     if (response.data.success) {
       product.value = response.data.data
-      console.log('[상품 상세] product:', product.value)
     } else {
       throw new Error(response.data.message || '상품 정보를 불러올 수 없습니다.')
     }
@@ -490,18 +555,11 @@ const fetchProductDetail = async () => {
 const fetchUserInfo = async () => {
   try {
     const accessToken = sessionStorage.getItem('accessToken')
-
-    if (!accessToken) {
-      console.warn('[사용자 정보] accessToken 없음')
-      return
-    }
+    if (!accessToken) return
 
     const response = await getUserInfo()
-    console.log('[사용자 정보] API 응답:', response.data)
-
     if (response.data.success) {
       currentUser.value = response.data.data
-      console.log('[사용자 정보] currentUser:', currentUser.value)
     }
   } catch (err) {
     console.error('[사용자 정보] 에러:', err)
@@ -509,22 +567,22 @@ const fetchUserInfo = async () => {
 }
 
 const fetchRecommendations = async () => {
+  loadingRecommend.value = true
   try {
     const productCode = route.params.productCode
-    console.log('[추천 상품] productCode:', productCode)
-
-    const response = await recommendByProductDetail(productCode, 10)
-    console.log('[추천 상품] API 응답:', response.data)
+    const response = await recommendByProductDetail(productCode, 20)
 
     if (response.data.success && response.data.data) {
-      recommendations.value = response.data.data
-      console.log('[추천 상품] recommendations:', recommendations.value)
+      const data = response.data.data
+      recommendedProducts.value = data.recommendSpecs || data || []
     } else {
-      recommendations.value = []
+      recommendedProducts.value = []
     }
   } catch (err) {
     console.error('[추천 상품] 에러:', err)
-    recommendations.value = []
+    recommendedProducts.value = []
+  } finally {
+    loadingRecommend.value = false
   }
 }
 
@@ -534,7 +592,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 스크롤바 스타일 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -554,7 +611,6 @@ onMounted(async () => {
   background: #555;
 }
 
-/* 라인 클램프 */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
