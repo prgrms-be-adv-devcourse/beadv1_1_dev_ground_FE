@@ -128,8 +128,6 @@ const loadPaymentInfo = async () => {
 
   try {
     const { data } = await api.get('/payments/checkout', {
-      headers: {access},
-      withCredentials: true
     })
 
     const payload = data?.data || data
