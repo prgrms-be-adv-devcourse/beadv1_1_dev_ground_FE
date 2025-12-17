@@ -29,7 +29,7 @@
         @click="goBack"
         class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
       >
-        뒤로가기
+        돌아가기
       </button>
     </div>
   </div>
@@ -87,7 +87,7 @@
             </div>
           </div>
 
-          <!-- 썸네일 슬라이더 -->
+          <!-- 썸네일 슬라이더 (항상 표시) -->
           <div class="bg-white rounded-xl p-4 shadow">
             <div class="flex gap-2 overflow-x-auto pb-2">
               <template v-if="product.imageUrls && product.imageUrls.length > 0">
@@ -145,12 +145,14 @@
             </div>
 
             <div class="p-6">
+              <!-- 상세설명 탭 -->
               <div v-if="activeTab === 'detail'">
                 <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">
                   {{ product.description || '상품 설명이 없습니다.' }}
                 </p>
               </div>
 
+              <!-- 거래정보 탭 -->
               <div v-if="activeTab === 'info'">
                 <div class="space-y-4">
                   <div class="bg-gray-50 rounded-lg p-4">
@@ -192,9 +194,10 @@
           </div>
         </div>
 
-        <!-- 오른쪽 상품 정보 -->
+        <!-- 오른쪽: 상품 정보 (고정 높이) -->
         <div class="lg:sticky lg:top-24 lg:self-start">
           <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
+            <!-- 판매자 정보 -->
             <div class="flex items-center gap-3 pb-6 border-b border-gray-200">
               <div
                 class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
@@ -215,14 +218,17 @@
               </div>
             </div>
 
+            <!-- 상품명 -->
             <div>
               <h1 class="text-2xl font-bold text-gray-900">{{ product.title }}</h1>
             </div>
 
+            <!-- 가격 -->
             <div>
               <p class="text-3xl font-bold text-indigo-600">{{ formatPrice(product.price) }}원</p>
             </div>
 
+            <!-- 버튼 영역 -->
             <div class="space-y-3 pt-4">
               <div class="grid grid-cols-2 gap-3">
                 <button
@@ -264,6 +270,7 @@
               </button>
             </div>
 
+            <!-- 안전거래 안내 (버튼 아래) -->
             <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
               <div class="flex items-start gap-3">
                 <svg
@@ -298,7 +305,7 @@
                           clip-rule="evenodd"
                         />
                       </svg>
-                      에스크로 결제 시스템
+                      예치금 결제 시스템
                     </li>
                     <li class="flex items-center gap-2">
                       <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -308,7 +315,7 @@
                           clip-rule="evenodd"
                         />
                       </svg>
-                      거래 분쟁 해결
+                      거래 완료 후 정산
                     </li>
                   </ul>
                 </div>
@@ -318,9 +325,9 @@
         </div>
       </div>
 
-      <!-- 추천 -->
+      <!-- 비슷한 상품 추천 -->
       <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 {{ recommendTitle }}</h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-4">🔥 이 상품과 비슷한 상품</h2>
 
         <div v-if="loadingRecommend" class="flex justify-center py-8">
           <div
@@ -329,6 +336,7 @@
         </div>
 
         <div v-else-if="recommendedProducts.length > 0" class="relative">
+          <!-- 왼쪽 버튼 -->
           <button
             v-if="recommendedProducts.length > itemsPerPage"
             @click="previousPage"
@@ -349,7 +357,8 @@
             </svg>
           </button>
 
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <!-- 상품 그리드 (2열) -->
+          <div class="grid grid-cols-2 gap-4">
             <div
               v-for="(item, index) in displayedRecommendations"
               :key="`rec-${index}`"
@@ -362,6 +371,7 @@
                   :src="item.thumbnailUrl"
                   :alt="item.title"
                   class="w-full h-full object-cover"
+                  @error="handleImageError"
                 />
                 <svg v-else class="w-16 h-16 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -372,14 +382,15 @@
                 </svg>
               </div>
               <div class="p-3">
-                <p class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
+                <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
                   {{ item.title }}
-                </p>
+                </h3>
                 <p class="text-base font-bold text-indigo-600">{{ formatPrice(item.price) }}원</p>
               </div>
             </div>
           </div>
 
+          <!-- 오른쪽 버튼 -->
           <button
             v-if="recommendedProducts.length > itemsPerPage"
             @click="nextPage"
@@ -401,15 +412,12 @@
           </button>
         </div>
 
-        <div
-          v-else
-          class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200"
-        >
+        <div v-else class="bg-gray-50 rounded-lg p-12 text-center">
           <svg
-            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+            class="mx-auto h-12 w-12 text-gray-400 mb-3"
             fill="none"
-            stroke="currentColor"
             viewBox="0 0 24 24"
+            stroke="currentColor"
           >
             <path
               stroke-linecap="round"
@@ -426,15 +434,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
-import { useCartStore } from '@/stores/cart'
+import { createOrGetChatRoom } from '@/api/chat'
+import { useChatStore } from '@/stores/chat'
 
-const cartStore = useCartStore()
 const router = useRouter()
 const route = useRoute()
+const chatStore = useChatStore()
 
 const loading = ref(true)
 const error = ref(null)
@@ -442,42 +451,22 @@ const product = ref({})
 const currentUser = ref(null)
 const selectedImageIndex = ref(0)
 const activeTab = ref('detail')
-
 const recommendedProducts = ref([])
-const recommendType = ref(null)
 const loadingRecommend = ref(false)
 const currentRecommendPage = ref(0)
-
-// ✅ 추천 1줄 유지: 화면 크기별 itemsPerPage 자동 조정
-const calcItemsPerPage = (w) => {
-  if (w >= 1280) return 5 // xl
-  if (w >= 1024) return 4 // lg
-  if (w >= 768) return 3 // md
-  return 2 // base
-}
-const itemsPerPage = ref(calcItemsPerPage(window.innerWidth))
-const handleResize = () => {
-  const next = calcItemsPerPage(window.innerWidth)
-  if (itemsPerPage.value !== next) {
-    itemsPerPage.value = next
-    currentRecommendPage.value = 0
-  }
-}
+const itemsPerPage = ref(2)
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
   { id: 'info', name: '거래정보' },
 ]
 
-const recommendTitle = computed(() => {
-  if (recommendType.value === 'PRODUCT_DETAIL_BASED') return '이 상품과 비슷한 상품'
-  return '인기 상품 추천'
-})
-
 const displayedRecommendations = computed(() => {
   if (recommendedProducts.value.length === 0) return []
+
   const start = currentRecommendPage.value * itemsPerPage.value
   const end = start + itemsPerPage.value
+
   return recommendedProducts.value.slice(start, end)
 })
 
@@ -494,69 +483,145 @@ const previousPage = () => {
 const formatPrice = (price) => (price ? price.toLocaleString('ko-KR') : '0')
 
 const getProductStatusText = (status) => {
-  const statusMap = { ON_SALE: '판매중', RESERVED: '예약중', SOLD_OUT: '판매완료' }
-  return statusMap[status] || '알 수 없음'
+  const statusMap = {
+    ON_SALE: '판매중',
+    RESERVED: '예약중',
+    SOLD_OUT: '판매완료',
+  }
+  return statusMap[status] || status
 }
 
-const goBack = () => router.back()
-const handleChat = () => alert('채팅 기능은 준비 중입니다.')
+const handleMainImageError = (e) => {
+  e.target.style.display = 'none'
+}
+
+const handleThumbnailError = (e) => {
+  e.target.parentElement.style.display = 'none'
+}
+
+const handleImageError = (e) => {
+  e.target.style.display = 'none'
+}
+
+const goBack = () => {
+  router.back()
+}
+
+const handleChat = async () => {
+  const resolveUserCode = () => {
+    const stored =
+      sessionStorage.getItem('X-CODE') ||
+      sessionStorage.getItem('userCode')
+    if (stored) return stored
+    const accessToken = sessionStorage.getItem('accessToken')
+    if (!accessToken) return ''
+    try {
+      const payloadPart = accessToken.split('.')[1]
+      const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+      const padded = normalized.padEnd(
+        normalized.length + ((4 - (normalized.length % 4)) % 4),
+        '=',
+      )
+      const decoded = JSON.parse(atob(padded))
+      return decoded?.userCode || ''
+    } catch (e) {
+      console.warn('userCode 파싱 실패', e)
+      return ''
+    }
+  }
+
+  const userCode = resolveUserCode()
+  if (!userCode) {
+    alert('로그인 후 채팅을 이용해 주세요.')
+    router.push('/login')
+    return
+  }
+  sessionStorage.setItem('X-CODE', userCode)
+
+  const productCode = route.params.id || route.params.productCode || product.value.productCode
+  const sellerCode = product.value.sellerCode
+  console.log(productCode, sellerCode)
+  if (!productCode || !sellerCode) {
+    alert('상품 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+    return
+  }
+  if (sellerCode === userCode) {
+    alert('본인 상품에는 채팅을 시작할 수 없습니다.')
+    return
+  }
+
+  try {
+    const { data } = await createOrGetChatRoom({
+      productCode,
+      sellerCode,
+      buyerCode: userCode,
+    })
+    const room = data?.data || data
+    if (room?.id) {
+      chatStore.openRoom(room.id)
+    } else {
+      chatStore.open()
+    }
+  } catch (err) {
+    console.error('채팅 시작 실패:', err)
+    alert('채팅을 시작하지 못했습니다. 다시 시도해주세요.')
+  }
+}
 
 const handleAddToCart = async () => {
   const confirmed = confirm('장바구니에 추가하시겠습니까?')
   if (confirmed) {
-    cartStore.addItemToCart(product.value.productCode)
     alert('장바구니에 추가되었습니다.')
   }
 }
 
-const handleBuyNow = () => alert('주문 기능은 준비 중입니다.')
-
-const goToProduct = (productCode) => {
-  router.push(`/productdetail/${productCode}`)
+const handleBuyNow = () => {
+  alert('주문 기능은 준비 중입니다.')
 }
 
-// ✅ silent fetch 지원(폴링 시 깜빡임 방지)
-const fetchProductDetail = async ({ silent = false } = {}) => {
-  if (!silent) loading.value = true
-  error.value = null
+const goToProduct = (productCode) => {
+  router.push(`/productDetail/${productCode}`)
+  window.location.reload()
+}
+
+const fetchProductDetail = async () => {
   try {
-    const productCode = route.params.productCode
+    loading.value = true
+    error.value = null
+
+    const productCode = route.params.id || route.params.productCode
+    if (!productCode) {
+      throw new Error('상품 코드가 없습니다.')
+    }
+
+    const accessToken = sessionStorage.getItem('accessToken')
+    if (!accessToken) {
+      throw new Error('로그인이 필요합니다.')
+    }
+
     const response = await getProductDetail(productCode)
-
-    if (response.data.success && response.data.data) {
+    if (response.data.success) {
       product.value = response.data.data
-
-      // 이미지 인덱스 보정
-      if (!product.value.imageUrls || product.value.imageUrls.length === 0) {
-        selectedImageIndex.value = 0
-      } else if (selectedImageIndex.value >= product.value.imageUrls.length) {
-        selectedImageIndex.value = 0
-      }
     } else {
-      if (!silent) error.value = response.data.msg || '상품을 불러올 수 없습니다.'
+      throw new Error(response.data.message || '상품 정보를 불러올 수 없습니다.')
     }
   } catch (err) {
     console.error('[상품 상세] 에러:', err)
-    if (!silent) error.value = '상품을 불러오는 중 오류가 발생했습니다.'
+    error.value = err.message || '상품 정보를 불러오는 중 오류가 발생했습니다.'
   } finally {
-    if (!silent) loading.value = false
+    loading.value = false
   }
-}
-
-const handleMainImageError = (e) => {
-  console.error('메인 이미지 로드 실패:', e.target.src)
-  e.target.src = 'https://via.placeholder.com/400?text=Image+Not+Found'
-}
-
-const handleThumbnailError = (e) => {
-  console.error('썸네일 이미지 로드 실패:', e.target.src)
-  e.target.src = 'https://via.placeholder.com/80?text=No+Image'
 }
 
 const fetchUserInfo = async () => {
   try {
+    const accessToken = sessionStorage.getItem('accessToken')
+    if (!accessToken) return
+
     const response = await getUserInfo()
-    if (response.data.success && response.data.data) currentUser.value = response.data.data
+    if (response.data.success) {
+      currentUser.value = response.data.data
+    }
   } catch (err) {
     console.error('[사용자 정보] 에러:', err)
   }
@@ -565,96 +630,51 @@ const fetchUserInfo = async () => {
 const fetchRecommendations = async () => {
   loadingRecommend.value = true
   try {
-    const productCode = route.params.productCode
+    const productCode = route.params.id || route.params.productCode
     const response = await recommendByProductDetail(productCode, 20)
 
     if (response.data.success && response.data.data) {
       const data = response.data.data
       recommendedProducts.value = data.recommendSpecs || data || []
-      recommendType.value = data.recommendType || null
-      currentRecommendPage.value = 0
     } else {
       recommendedProducts.value = []
-      recommendType.value = null
     }
   } catch (err) {
     console.error('[추천 상품] 에러:', err)
     recommendedProducts.value = []
-    recommendType.value = null
   } finally {
     loadingRecommend.value = false
   }
 }
 
-// ✅ 이미지 업로드 완료 후 자동 반영: 이미지 없으면 잠깐 폴링
-let imagePollTimer = null
-const stopImagePolling = () => {
-  if (imagePollTimer) {
-    clearInterval(imagePollTimer)
-    imagePollTimer = null
-  }
-}
-const startImagePollingIfNeeded = () => {
-  stopImagePolling()
-
-  const hasImages = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
-  if (hasImages) return
-
-  let attempts = 0
-  const MAX_ATTEMPTS = 20
-  const INTERVAL_MS = 1000
-
-  imagePollTimer = setInterval(async () => {
-    attempts += 1
-    await fetchProductDetail({ silent: true })
-
-    const ok = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
-    if (ok || attempts >= MAX_ATTEMPTS) stopImagePolling()
-  }, INTERVAL_MS)
-}
-
 onMounted(async () => {
   await Promise.all([fetchProductDetail(), fetchUserInfo(), fetchRecommendations()])
-  startImagePollingIfNeeded()
-
-  window.addEventListener('resize', handleResize)
-})
-
-watch(
-  () => route.params.productCode,
-  async (newCode, oldCode) => {
-    if (newCode && newCode !== oldCode) {
-      stopImagePolling()
-      await Promise.all([fetchProductDetail(), fetchRecommendations()])
-      startImagePollingIfNeeded()
-    }
-  },
-)
-
-onUnmounted(() => {
-  stopImagePolling()
-  window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
 ::-webkit-scrollbar {
+  width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #c7d2fe;
+  background: #888;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #a5b4fc;
+  background: #555;
 }
-.line-clamp-1 {
+
+.line-clamp-2 {
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

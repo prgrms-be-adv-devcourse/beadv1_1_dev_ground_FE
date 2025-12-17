@@ -1,7 +1,3 @@
-// ============================================================
-// ✅ src/api/product.js 전체 교체
-// ============================================================
-
 import axios from 'axios'
 
 /**
@@ -53,13 +49,16 @@ export const recommendByProductDetail = (productCode, size = 10) => {
 
 /**
  * ✅ 검색어 자동완성 API
+ * - 쿼리스트링 직접 조립 ❌
+ * - axios params ✅ (자동 인코딩)
+ * - 앞에 '/' 반드시 ✅
  */
 export const suggestCompletion = (params = {}) => {
   const { signal } = params
 
   return axios.get('/api/products/suggest/completion', {
     params: {
-      keyword: params.keyword || '',
+      keyword: params.keyword || '', // ✅ [중요] 백엔드 파라미터명 keyword
       size: params.size || 5,
       categoryId: params.categoryId ?? null,
       includeSold: params.includeSold ?? false,
@@ -81,20 +80,19 @@ export const suggestRelated = (params = {}) => {
 }
 
 /**
- * ✅ 상품 상세 조회 API (수정됨!)
- * - accessToken 키로 변경
+ * 상품 상세 조회
  */
 export const getProductDetail = (productCode) => {
-  const accessToken = sessionStorage.getItem('accessToken') // ✅ accessToken
+  if (!productCode) throw new Error('productCode is required')
+
+  const accessToken = sessionStorage.getItem("accessToken")
 
   const headers = {}
   if (accessToken) {
-    headers['access'] = accessToken // ✅ access 헤더로 전달
+    headers['access'] = accessToken
   }
 
-  return axios.get(`/api/products/${productCode}`, {
-    headers,
-  })
+  return axios.get(`/api/products/${productCode}`, {headers})
 }
 
 export const getUserProducts = ({ page = 1, size = 10 } = {}) => {

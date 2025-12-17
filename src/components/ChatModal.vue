@@ -14,7 +14,9 @@
         <div class="w-1/3 border-r border-gray-200 flex flex-col">
           <div class="p-4 border-b border-gray-200 flex items-center justify-between">
             <div class="text-sm font-semibold text-gray-900">채팅방</div>
-            <div class="text-[12px] text-gray-500" v-if="!hasUserCode">로그인 후 이용 가능</div>
+            <div class="text-[12px] text-gray-500">
+              {{ hasUserCode ? '로그인 계정 기준' : '로그인 후 이용 가능' }}
+            </div>
           </div>
           <div class="p-4 border-b border-gray-200 flex items-center gap-2">
             <input
@@ -218,56 +220,94 @@
 </template>
 
 <script setup>
-import { api } from '@/api'
+import { api } from '@/api/stompIndex'
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
+  initialRoomId: { type: String, default: '' },
 })
+const userCode = ref('')
+
+const getAccessToken = () =>
+  sessionStorage.getItem('accessToken') ||
+  sessionStorage.getItem('access') ||
+  localStorage.getItem('accessToken') ||
+  localStorage.getItem('access')
+
+const decodeUserCodeFromToken = (token) => {
+  if (!token) return ''
+  try {
+    const payloadPart = token.split('.')[1]
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const decoded = JSON.parse(atob(padded))
+    return decoded?.userCode || ''
+  } catch (e) {
+    console.warn('액세스 토큰 디코드 실패', e)
+    return ''
+  }
+}
+
+const ensureUserCode = () => {
+  const decoded = decodeUserCodeFromToken(getAccessToken())
+  const stored =
+    sessionStorage.getItem('X-CODE') ||
+    sessionStorage.getItem('userCode')
+
+  if (decoded && decoded !== stored) {
+    userCode.value = decoded
+    sessionStorage.setItem('X-CODE', decoded)
+    return decoded
+  }
+
+  if (stored) {
+    userCode.value = stored
+    return stored
+  }
+
+  if (decoded) {
+    userCode.value = decoded
+    sessionStorage.setItem('X-CODE', decoded)
+    return decoded
+  }
+
+  return ''
+}
+
+const fetchUserCodeFromApi = async () => {
+  try {
+    const { data } = await api.get('/users/')
+    const payload = data?.data || data
+    return payload?.userCode || payload?.code || ''
+  } catch (e) {
+    console.warn('userCode 조회 실패', e)
+    return ''
+  }
+}
+
+const ensureUserCodeAsync = async () => {
+  const decoded = decodeUserCodeFromToken(getAccessToken())
+  if (decoded) {
+    userCode.value = decoded
+    sessionStorage.setItem('X-CODE', decoded)
+    return decoded
+  }
+
+  const existing = ensureUserCode()
+  if (existing) return existing
+
+  const fetched = await fetchUserCodeFromApi()
+  if (fetched) {
+    userCode.value = fetched
+    sessionStorage.setItem('X-CODE', fetched)
+    return fetched
+  }
+  return ''
+}
+
 const emit = defineEmits(['close', 'unread-update'])
 
-const resolveStoredUserCode = () => {
-  const fromStorage =
-    sessionStorage.getItem('X-CODE') ||
-    localStorage.getItem('X-CODE') ||
-    sessionStorage.getItem('userCode') ||
-    localStorage.getItem('userCode')
-
-  if (fromStorage) return fromStorage
-
-  const accessToken =
-    sessionStorage.getItem('accessToken') ||
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('access') ||
-    localStorage.getItem('access')
-
-  if (accessToken) {
-    try {
-      const payloadPart = accessToken.split('.')[1]
-      const decoded = JSON.parse(atob(payloadPart))
-      if (decoded?.userCode) return decoded.userCode
-    } catch (e) {
-      console.warn('액세스 토큰 디코드 실패', e)
-    }
-  }
-
-  const cookie = (document.cookie || '')
-    .split(';')
-    .map((c) => c.trim())
-    .find((c) => c.startsWith('X-CODE='))
-  return cookie ? decodeURIComponent(cookie.split('=')[1]) : ''
-}
-
-const userCode = ref(resolveStoredUserCode() || '')
-const syncUserCode = () => {
-  const detected = resolveStoredUserCode()
-  if (detected && detected !== userCode.value) {
-    userCode.value = detected
-    sessionStorage.setItem('X-CODE', detected)
-    localStorage.setItem('X-CODE', detected)
-  }
-  return detected
-}
 const roomFilter = ref('')
 const rooms = ref([])
 const roomsLoading = ref(false)
@@ -275,6 +315,7 @@ const selectedRoom = ref(null)
 const messages = ref([])
 const messagesLoading = ref(false)
 const messageInput = ref('')
+const pendingRoomId = ref(props.initialRoomId || '')
 
 const stompClient = ref(null)
 const stompConnected = ref(false)
@@ -283,16 +324,28 @@ const userProfiles = ref({})
 const loadingProfileCodes = new Set()
 const bottomAnchor = ref(null)
 
-const hasUserCode = computed(() => !!userCode.value.trim())
+const hasUserCode = computed(() => !!userCode.value)
 
 const filteredRooms = computed(() => {
   const term = roomFilter.value.trim().toLowerCase()
+  console.log(roomFilter.value)
   if (!term) return rooms.value
   return rooms.value.filter((r) => {
     const title = r.productTitle || r.productCode || ''
     return title.toLowerCase().includes(term)
   })
 })
+
+const setPendingRoom = (roomId) => {
+  if (!roomId) return
+  const existing = rooms.value.find((r) => r.id === roomId)
+  if (existing) {
+    selectRoom(existing)
+    pendingRoomId.value = ''
+  } else {
+    pendingRoomId.value = roomId
+  }
+}
 
 const formatTime = (iso) => {
   if (!iso) return ''
@@ -328,7 +381,7 @@ const loadUserProfile = async (code) => {
   if (!code || userProfiles.value[code] || loadingProfileCodes.has(code)) return
   loadingProfileCodes.add(code)
   try {
-    const { data } = await api.get('/users/', { headers: { 'X-CODE': code } })
+    const { data } = await api.get('/users/')
     const payload = data?.data || data
     userProfiles.value = {
       ...userProfiles.value,
@@ -353,8 +406,29 @@ const prefetchProfiles = async (codes = []) => {
   await Promise.all(uniqueCodes.map((c) => loadUserProfile(c)))
 }
 
+const markLocalRead = (readerCode, chatId) => {
+  if (!readerCode) return
+  messages.value = messages.value.map((m) =>
+    m.senderCode && m.senderCode !== readerCode
+      ? { ...m, read: true, isRead: true }
+      : m,
+  )
+  if (selectedRoom.value?.id === chatId) {
+    const idx = rooms.value.findIndex((r) => r.id === chatId)
+    if (idx !== -1) {
+      rooms.value[idx] = { ...rooms.value[idx], unreadCount: 0 }
+    }
+    selectedRoom.value = { ...selectedRoom.value, unreadCount: 0 }
+  }
+}
+
 const markAsRead = async (chatId) => {
   try {
+    const resolved = await ensureUserCodeAsync()
+    if (!resolved) {
+      console.error('읽음 처리 실패: userCode 없음')
+      return
+    }
     await api.post(
       `/chat/rooms/${chatId}/read`,
       {},
@@ -362,6 +436,7 @@ const markAsRead = async (chatId) => {
         headers: { 'X-CODE': userCode.value },
       },
     )
+    markLocalRead(userCode.value, chatId)
   } catch (e) {
     console.error('읽음 처리 실패', e)
   }
@@ -397,70 +472,88 @@ const disconnectStomp = () => {
   }
 }
 
-const connectStomp = async (chatId) => {
-  try {
-    const Stomp = await ensureStomp()
-    disconnectStomp()
-    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
-    // 게이트웨이 경유: /api/chat/ws-chat -> gateway에서 /ws-chat 으로 rewrite
-    const socket = new WebSocket(`${wsProtocol}://localhost:8000/api/chat/ws-chat`)
-    const client = Stomp.over(socket)
-    client.debug = () => {}
-    client.connect({}, () => {
-      stompConnected.value = true
-      client.subscribe(`/topic/chat/${chatId}`, (message) => {
-        try {
-          const payload = JSON.parse(message.body)
-          loadUserProfile(payload.senderCode)
-          messages.value.push({ ...payload, read: false, isRead: false })
-          if (
-            selectedRoom.value?.id === chatId &&
-            open &&
-            userCode.value &&
-            payload.senderCode !== userCode.value
-          ) {
-            markAsRead(chatId)
-          }
-          scrollToBottom()
-        } catch (e) {
-          console.warn('메시지 파싱 실패', e)
-        }
-      })
-      client.subscribe(`/topic/chat/${chatId}/read`, (message) => {
-        try {
-          const payload = JSON.parse(message.body)
-          const readerCode = payload?.readerCode
-          messages.value = messages.value.map((m) =>
-            m.senderCode && readerCode && m.senderCode !== readerCode
-              ? { ...m, read: true, isRead: true }
-              : m,
-          )
-        } catch (e) {
-          console.warn('읽음 이벤트 파싱 실패', e)
-        }
-      })
-    })
-    stompClient.value = client
-  } catch (e) {
-    console.error('STOMP 연결 실패', e)
-  }
-}
+const connectStomp = (chatId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      await ensureUserCodeAsync()
+      const Stomp = await ensureStomp()
+      disconnectStomp()
+      const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
+      // 게이트웨이 경유: /api/chat/ws-chat -> gateway에서 /ws-chat 으로 rewrite
+      const socket = new WebSocket(`wss://dbay.site/api/chat/ws-chat`)
+      const client = Stomp.over(socket)
+      client.debug = () => {}
+      client.connect(
+        {},
+        () => {
+          stompConnected.value = true
+          client.subscribe(`/topic/chat/${chatId}`, (message) => {
+            try {
+              const payload = JSON.parse(message.body)
+              loadUserProfile(payload.senderCode)
+              messages.value.push({ ...payload, read: false, isRead: false })
+              if (
+                selectedRoom.value?.id === chatId &&
+                open &&
+                userCode.value &&
+                payload.senderCode !== userCode.value
+              ) {
+                markAsRead(chatId)
+              }
+              scrollToBottom()
+            } catch (e) {
+              console.warn('메시지 파싱 실패', e)
+            }
+          })
+          client.subscribe(`/topic/chat/${chatId}/read`, (message) => {
+            try {
+              const payload = JSON.parse(message.body)
+              const readerCode = payload?.readerCode
+              messages.value = messages.value.map((m) =>
+                m.senderCode && readerCode && m.senderCode !== readerCode
+                  ? { ...m, read: true, isRead: true }
+                  : m,
+              )
+            } catch (e) {
+              console.warn('읽음 이벤트 파싱 실패', e)
+            }
+          })
+          resolve()
+        },
+        (err) => {
+          stompConnected.value = false
+          reject(err)
+        },
+      )
+      stompClient.value = client
+    } catch (e) {
+      console.error('STOMP 연결 실패', e)
+      reject(e)
+    }
+  })
 
 const loadRooms = async () => {
-  if (!hasUserCode.value && !syncUserCode()) return
+  if (!(await ensureUserCodeAsync())) return
   roomsLoading.value = true
   try {
     const { data } = await api.get('/chat/rooms', {
-      headers: { 'X-CODE': userCode.value },
       params: { status: 'OPEN' },
+      headers: { 'X-CODE': userCode.value },
     })
     rooms.value = Array.isArray(data) ? data : data?.data || []
-    console.log(data)
+    console.log("응답:",data)
     emit(
       'unread-update',
       rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
     )
     prefetchProfiles(rooms.value.map((room) => getCounterpartCode(room)))
+    if (pendingRoomId.value) {
+      const found = rooms.value.find((r) => r.id === pendingRoomId.value)
+      if (found) {
+        await selectRoom(found)
+        pendingRoomId.value = ''
+      }
+    }
   } catch (e) {
     console.error('방 목록 불러오기 실패', e)
   } finally {
@@ -471,10 +564,17 @@ const loadRooms = async () => {
 const loadMessages = async (chatId) => {
   messagesLoading.value = true
   try {
+    console.log(chatId)
+    if (!(await ensureUserCodeAsync())) {
+      console.error('메시지 불러오기 실패: userCode 없음')
+      return
+    }
     const { data } = await api.get(`/chat/rooms/${chatId}/messages`, {
       headers: { 'X-CODE': userCode.value },
     })
+    console.log('메세지: ', data)
     messages.value = Array.isArray(data) ? data : data?.data || []
+    markLocalRead(userCode.value, chatId)
     await prefetchProfiles(messages.value.map((m) => m.senderCode))
     // 읽음 처리 후 목록의 해당 방 카운트 즉시 0으로 갱신
     const idx = rooms.value.findIndex((r) => r.id === chatId)
@@ -499,14 +599,20 @@ const loadMessages = async (chatId) => {
 
 const selectRoom = async (room) => {
   selectedRoom.value = room
+  console.log(selectedRoom.value)
   messages.value = []
   prefetchProfiles([room.sellerCode, room.buyerCode, userCode.value])
-  await loadMessages(room.id)
-  connectStomp(room.id)
+  await connectStomp(room.id) // 구독 먼저
+  await loadMessages(room.id) // 이 호출에서 읽음 이벤트 발생 → 구독 후라 놓치지 않음
   scrollToBottom()
 }
 
-const sendMessage = () => {
+const sendMessage = async () => {
+  const resolved = await ensureUserCodeAsync()
+  if (!resolved) {
+    console.error('메시지 전송 실패: userCode 없음')
+    return
+  }
   if (
     !selectedRoom.value ||
     !messageInput.value.trim() ||
@@ -514,7 +620,9 @@ const sendMessage = () => {
     !stompClient.value
   )
     return
+
   try {
+    console.log('[chat] send with X-CODE:', userCode.value)
     stompClient.value.send(
       '/app/chat/messages',
       { 'X-CODE': userCode.value },
@@ -534,13 +642,19 @@ watch(
   () => props.open,
   (val) => {
     if (val) {
-      syncUserCode()
       loadRooms()
     } else {
       selectedRoom.value = null
       messages.value = []
       disconnectStomp()
     }
+  },
+)
+
+watch(
+  () => props.initialRoomId,
+  (val) => {
+    if (val) setPendingRoom(val)
   },
 )
 
@@ -552,8 +666,8 @@ watch(
   { deep: true, flush: 'post' },
 )
 
-onMounted(() => {
-  syncUserCode()
+onMounted(async () => {
+  await ensureUserCodeAsync()
 })
 
 onBeforeUnmount(() => {
