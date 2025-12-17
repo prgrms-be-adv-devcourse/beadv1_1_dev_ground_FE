@@ -48,24 +48,6 @@
             <p v-if="errors.password" class="mt-2 text-xs text-red-600">{{ errors.password }}</p>
           </div>
 
-          <!-- 로그인 유지 & 비밀번호 찾기 -->
-          <!--          <div class="flex items-center justify-between pt-1">-->
-          <!--            <label class="flex items-center gap-2 cursor-pointer">-->
-          <!--              <input-->
-          <!--                v-model="loginForm.rememberMe"-->
-          <!--                type="checkbox"-->
-          <!--                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"-->
-          <!--              />-->
-          <!--              <span class="text-sm text-gray-700">로그인 유지</span>-->
-          <!--            </label>-->
-          <!--            <a-->
-          <!--              href="#"-->
-          <!--              class="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"-->
-          <!--            >-->
-          <!--              비밀번호 찾기-->
-          <!--            </a>-->
-          <!--          </div>-->
-
           <!-- 로그인 버튼 -->
           <button
             type="submit"
@@ -153,6 +135,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import router from '@/router/index.js'
 import axios from 'axios'
+import { getUserCodeFromToken } from '@/utils/JwtUtils'
 
 const route = useRoute()
 
@@ -225,6 +208,15 @@ const handleLogin = async () => {
     const accessToken = headers?.access || headers?.['access']
     if (accessToken) {
       sessionStorage.setItem('accessToken', accessToken)
+
+      // ✅ JWT 토큰에서 userCode 추출하여 저장
+      const userCode = getUserCodeFromToken(accessToken)
+      if (userCode) {
+        sessionStorage.setItem('userCode', userCode)
+        console.log('✅ userCode 저장:', userCode)
+      } else {
+        console.warn('⚠️ JWT 토큰에서 userCode를 추출할 수 없습니다.')
+      }
     } else {
       console.warn('응답 헤더/바디에 access 토큰이 없습니다.')
     }
@@ -270,7 +262,16 @@ const kakaoLogin = async (code) => {
 
     // access 토큰 헤더로 받는다면 (네 일반 로그인 로직과 동일)
     const accessToken = headers?.access || headers?.['access']
-    if (accessToken) sessionStorage.setItem('accessToken', accessToken)
+    if (accessToken) {
+      sessionStorage.setItem('accessToken', accessToken)
+
+      // ✅ JWT 토큰에서 userCode 추출하여 저장
+      const userCode = getUserCodeFromToken(accessToken)
+      if (userCode) {
+        sessionStorage.setItem('userCode', userCode)
+        console.log('✅ (카카오) userCode 저장:', userCode)
+      }
+    }
 
     // ✅ code 남아있으면 새로고침 때 또 호출되니까 제거
     await router.replace({ path: route.path, query: {} })

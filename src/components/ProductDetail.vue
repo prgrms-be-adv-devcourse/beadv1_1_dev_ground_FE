@@ -194,27 +194,51 @@
           </div>
         </div>
 
-        <!-- 오른쪽: 상품 정보 (고정 높이) -->
+        <!-- 오른쪽: 상품 정보 -->
         <div class="lg:sticky lg:top-24 lg:self-start">
           <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
-            <!-- 판매자 정보 -->
-            <div class="flex items-center gap-3 pb-6 border-b border-gray-200">
-              <div
-                class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
-              >
-                <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p class="font-semibold text-gray-900">{{ currentUser?.nickname || '판매자' }}</p>
-                <p class="text-sm text-gray-500">
-                  {{ currentUser?.email || 'seller@example.com' }}
-                </p>
+            <!-- 판매자 정보 섹션 -->
+            <div class="pb-6 border-b border-gray-200">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+                >
+                  <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <!-- 닉네임과 수정 버튼 -->
+                  <div class="flex items-center justify-between">
+                    <p class="font-semibold text-gray-900">
+                      {{ sellerInfo.nickname || '판매자' }}
+                    </p>
+                    <button
+                      v-if="isSeller"
+                      @click="handleEdit"
+                      class="px-3 py-1 text-xs font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition-colors"
+                    >
+                      수정
+                    </button>
+                  </div>
+                  <!-- 이메일과 삭제 버튼 -->
+                  <div class="flex items-center justify-between mt-1">
+                    <p class="text-sm text-gray-500">
+                      {{ sellerInfo.email || 'seller@example.com' }}
+                    </p>
+                    <button
+                      v-if="isSeller"
+                      @click="handleDelete"
+                      class="px-3 py-1 text-xs font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition-colors"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -436,11 +460,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getProductDetail, recommendByProductDetail } from '@/api/product'
-import { getUserInfo } from '@/api/user'
+
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
 import { createOrder } from '@/api/order'
+import { getProductDetail, recommendByProductDetail, deleteProduct } from '@/api/product'
+import { getUserInfoByCode } from '@/api/user'
 import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
@@ -451,13 +476,28 @@ const cartStore = useCartStore()
 const loading = ref(true)
 const error = ref(null)
 const product = ref({})
-const currentUser = ref(null)
+const currentUserCode = ref(null)
+const sellerInfo = ref({ nickname: '판매자', email: 'seller@example.com' })
 const selectedImageIndex = ref(0)
 const activeTab = ref('detail')
 const recommendedProducts = ref([])
 const loadingRecommend = ref(false)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(2)
+
+const calcItemsPerPage = (w) => {
+  if (w >= 1280) return 5
+  if (w >= 1024) return 4
+  if (w >= 768) return 3
+  return 2
+}
+const itemsPerPage = ref(calcItemsPerPage(window.innerWidth))
+const handleResize = () => {
+  const next = calcItemsPerPage(window.innerWidth)
+  if (itemsPerPage.value !== next) {
+    itemsPerPage.value = next
+    currentRecommendPage.value = 0
+  }
+}
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
@@ -471,6 +511,18 @@ const displayedRecommendations = computed(() => {
   const end = start + itemsPerPage.value
 
   return recommendedProducts.value.slice(start, end)
+})
+
+// 판매자 본인 여부 확인
+const isSeller = computed(() => {
+  console.log('[isSeller Debug] currentUserCode:', currentUserCode.value)
+  console.log('[isSeller Debug] product.sellerCode:', product.value?.sellerCode)
+  console.log('[isSeller Debug] 비교 결과:', currentUserCode.value === product.value?.sellerCode)
+
+  if (!currentUserCode.value || !product.value?.sellerCode) {
+    return false
+  }
+  return currentUserCode.value === product.value.sellerCode
 })
 
 const nextPage = () => {
@@ -494,13 +546,13 @@ const getProductStatusText = (status) => {
   return statusMap[status] || status
 }
 
-const handleMainImageError = (e) => {
-  e.target.style.display = 'none'
-}
+// const handleMainImageError = (e) => {
+//   e.target.style.display = 'none'
+// }
 
-const handleThumbnailError = (e) => {
-  e.target.parentElement.style.display = 'none'
-}
+// const handleThumbnailError = (e) => {
+//   e.target.parentElement.style.display = 'none'
+// }
 
 const handleImageError = (e) => {
   e.target.style.display = 'none'
@@ -512,19 +564,14 @@ const goBack = () => {
 
 const handleChat = async () => {
   const resolveUserCode = () => {
-    const stored =
-      sessionStorage.getItem('X-CODE') ||
-      sessionStorage.getItem('userCode')
+    const stored = sessionStorage.getItem('X-CODE') || sessionStorage.getItem('userCode')
     if (stored) return stored
     const accessToken = sessionStorage.getItem('accessToken')
     if (!accessToken) return ''
     try {
       const payloadPart = accessToken.split('.')[1]
       const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
-      const padded = normalized.padEnd(
-        normalized.length + ((4 - (normalized.length % 4)) % 4),
-        '=',
-      )
+      const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
       const decoded = JSON.parse(atob(padded))
       return decoded?.userCode || ''
     } catch (e) {
@@ -576,7 +623,7 @@ const handleAddToCart = async (productCode) => {
   if (confirm(`장바구니에 담으시겠습니까?`)) {
     await cartStore.addItemToCart(productCode)
     alert('장바구니에 추가되었습니다.')
-    return;
+    return
   }
 }
 
@@ -585,16 +632,44 @@ const handleBuyNow = async (productName, productCode) => {
   if (confirm(`${productName} 상품을 주문하시겠습니까?`)) {
     await createOrder(productCode)
     alert('주문이 완료되었습니다.')
-    return;
+    return
   }
 }
 
-const goToProduct = (productCode) => {
-  router.push(`/productDetail/${productCode}`)
-  window.location.reload()
+// 상품 수정 핸들러
+const handleEdit = () => {
+  const productCode = route.params.productCode
+  router.push(`/productupdate/${productCode}`)
 }
 
-const fetchProductDetail = async () => {
+// 상품 삭제 핸들러 (수정된 부분)
+const handleDelete = async () => {
+  const confirmed = confirm('정말로 상품을 삭제하시겠습니까?')
+  if (!confirmed) return
+
+  try {
+    const productCode = route.params.productCode
+    const response = await deleteProduct(productCode)
+
+    console.log('🗑️ [삭제 응답]:', response)
+    console.log('🗑️ [삭제 응답 status]:', response.status)
+
+    // 204 No Content 또는 200 OK 모두 성공으로 처리
+    if (response.status === 204 || response.status === 200) {
+      alert('상품이 성공적으로 삭제되었습니다.')
+      router.push('/')
+    } else {
+      alert('상품 삭제에 실패했습니다.')
+    }
+  } catch (err) {
+    console.error('[상품 삭제] 에러:', err)
+    alert('상품 삭제 중 오류가 발생했습니다.')
+  }
+}
+
+const fetchProductDetail = async ({ silent = false } = {}) => {
+  if (!silent) loading.value = true
+  error.value = null
   try {
     loading.value = true
     error.value = null
@@ -612,6 +687,19 @@ const fetchProductDetail = async () => {
     const response = await getProductDetail(productCode)
     if (response.data.success) {
       product.value = response.data.data
+
+      console.log('[상품 상세] product:', product.value)
+
+      if (!product.value.imageUrls || product.value.imageUrls.length === 0) {
+        selectedImageIndex.value = 0
+      } else if (selectedImageIndex.value >= product.value.imageUrls.length) {
+        selectedImageIndex.value = 0
+      }
+
+      // 판매자 정보 가져오기
+      if (product.value.sellerCode) {
+        await fetchSellerInfo(product.value.sellerCode)
+      }
     } else {
       throw new Error(response.data.message || '상품 정보를 불러올 수 없습니다.')
     }
@@ -623,17 +711,38 @@ const fetchProductDetail = async () => {
   }
 }
 
-const fetchUserInfo = async () => {
-  try {
-    const accessToken = sessionStorage.getItem('accessToken')
-    if (!accessToken) return
+const handleMainImageError = (e) => {
+  console.error('메인 이미지 로드 실패:', e.target.src)
+  e.target.src = 'https://via.placeholder.com/400?text=Image+Not+Found'
+}
 
-    const response = await getUserInfo()
-    if (response.data.success) {
-      currentUser.value = response.data.data
+const handleThumbnailError = (e) => {
+  console.error('썸네일 이미지 로드 실패:', e.target.src)
+  e.target.src = 'https://via.placeholder.com/80?text=No+Image'
+}
+
+const fetchCurrentUserCode = () => {
+  // sessionStorage에서 직접 userCode 가져오기
+  const userCodeFromStorage = sessionStorage.getItem('userCode')
+  if (userCodeFromStorage) {
+    currentUserCode.value = userCodeFromStorage
+    console.log('[현재 사용자] userCode:', userCodeFromStorage)
+  } else {
+    console.log('[현재 사용자] 로그인하지 않은 상태')
+  }
+}
+
+const fetchSellerInfo = async (sellerCode) => {
+  try {
+    const response = await getUserInfoByCode(sellerCode)
+    console.log('[판매자 정보] response:', response.data)
+
+    if (response.data.success && response.data.data) {
+      sellerInfo.value = response.data.data
+      console.log('[판매자 정보] sellerInfo:', sellerInfo.value)
     }
   } catch (err) {
-    console.error('[사용자 정보] 에러:', err)
+    console.error('[판매자 정보] 에러:', err)
   }
 }
 
@@ -657,8 +766,57 @@ const fetchRecommendations = async () => {
   }
 }
 
+let imagePollTimer = null
+const stopImagePolling = () => {
+  if (imagePollTimer) {
+    clearInterval(imagePollTimer)
+    imagePollTimer = null
+  }
+}
+const startImagePollingIfNeeded = () => {
+  stopImagePolling()
+
+  const hasImages = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
+  if (hasImages) return
+
+  let attempts = 0
+  const MAX_ATTEMPTS = 20
+  const INTERVAL_MS = 1000
+
+  imagePollTimer = setInterval(async () => {
+    attempts += 1
+    await fetchProductDetail({ silent: true })
+
+    const ok = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
+    if (ok || attempts >= MAX_ATTEMPTS) stopImagePolling()
+  }, INTERVAL_MS)
+}
+
 onMounted(async () => {
-  await Promise.all([fetchProductDetail(), fetchUserInfo(), fetchRecommendations()])
+  // fetchCurrentUserCode는 동기 함수이므로 바로 실행
+  fetchCurrentUserCode()
+
+  // 나머지 비동기 함수들은 Promise.all로 실행
+  await Promise.all([fetchProductDetail(), fetchRecommendations()])
+
+  startImagePollingIfNeeded()
+  window.addEventListener('resize', handleResize)
+})
+
+watch(
+  () => route.params.productCode,
+  async (newCode, oldCode) => {
+    if (newCode && newCode !== oldCode) {
+      stopImagePolling()
+      await Promise.all([fetchProductDetail(), fetchRecommendations()])
+      startImagePollingIfNeeded()
+    }
+  },
+)
+
+onUnmounted(() => {
+  stopImagePolling()
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
