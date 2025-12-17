@@ -25,4 +25,29 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const { response, config } = err
+    if (!response) throw err
+
+    if (response.status === 401 && !config._retry) {
+      config._retry = true
+
+      sessionStorage.removeItem('accessToken');
+      // ✅ 재발급 API 호출 (refresh 토큰은 HttpOnly 쿠키로 자동 포함)
+      const refreshRes = await api.post('/users/reissue');
+      // 서버가 새 access를 body로 주든 header로 주든, 그 방식에 맞게 꺼내서 저장
+      const newAccess = refreshRes.headers?.access;
+      console.log(refreshRes);
+      sessionStorage.setItem('accessToken', newAccess);
+
+      // 원래 요청에 새 토큰 붙여서 재시도
+      config.headers['access'] = newAccess;
+      return api(config);
+    }
+    throw err
+  },
+)
+
 export { api, openApi }
