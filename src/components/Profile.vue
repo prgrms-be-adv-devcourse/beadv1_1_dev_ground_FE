@@ -47,97 +47,7 @@
         <div class="lg:col-span-3 space-y-6">
           <!-- 거래 관리 -->
           <div v-if="selectedMenu === 'orders'" class="bg-white rounded-xl shadow-sm">
-<<<<<<< Updated upstream
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-2xl font-bold text-gray-900">거래 관리</h2>
-            </div>
-
-            <!-- 탭 -->
-            <div class="border-b border-gray-200">
-              <div class="flex px-6">
-                <button
-                  v-for="tab in orderTabs"
-                  :key="tab.value"
-                  @click="selectedOrderTab = tab.value"
-                  :class="[
-                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
-                    selectedOrderTab === tab.value
-                      ? 'border-indigo-600 text-indigo-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900',
-                  ]"
-                >
-                  {{ tab.label }}
-                  <span
-                    v-if="tab.count"
-                    class="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full"
-                  >
-                    {{ tab.count }}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 주문 목록 -->
-            <div class="p-6">
-              <div v-if="filteredOrders.length === 0" class="text-center py-12">
-                <div class="text-5xl mb-4">📦</div>
-                <p class="text-gray-600">거래 내역이 없습니다</p>
-              </div>
-
-              <div v-else class="space-y-4">
-                <div
-                  v-for="order in filteredOrders"
-                  :key="order.code"
-                  class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-                >
-                  <div class="flex gap-4">
-                    <img
-                      :src="order.image"
-                      :alt="order.productName"
-                      class="w-24 h-24 object-cover rounded-lg"
-                    />
-                    <div class="flex-1">
-                      <div class="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 class="font-semibold text-gray-900 mb-1">{{ order.productName }}</h3>
-                          <p class="text-sm text-gray-600">{{ order.seller }}</p>
-                        </div>
-                        <span
-                          :class="[
-                            'px-3 py-1 rounded-full text-xs font-medium',
-                            getOrderStatusStyle(order.status),
-                          ]"
-                        >
-                          {{ getOrderStatusText(order.status) }}
-                        </span>
-                      </div>
-                      <p class="text-lg font-bold text-gray-900 mb-2">
-                        {{ formatPrice(order.price) }}원
-                      </p>
-                      <p class="text-xs text-gray-500 mb-3">{{ formatDate(order.date) }}</p>
-                      <div class="flex gap-2">
-                        <button
-                          v-if="order.status === 'shipped'"
-                          @click="confirmOrder(order.code)"
-                          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          구매 확정
-                        </button>
-                        <button
-                          @click="viewOrderDetail(order.code)"
-                          class="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
-                        >
-                          상세 보기
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-=======
             <Order />
->>>>>>> Stashed changes
           </div>
 
           <!-- 판매 관리 -->
@@ -324,24 +234,14 @@
 
 <script setup>
 import router from '@/router'
-<<<<<<< Updated upstream
 import { ref, computed, onMounted } from 'vue'
 import { getUserInfo as fetchUserInfo } from '@/api/user'
 import { getUserProducts as fetchUserProducts } from '@/api/product'
 import { api } from '@/api'
-
-=======
-import { ref } from 'vue'
 import Order from './Order.vue'
->>>>>>> Stashed changes
-// import { useRouter } from 'vue-router'
 
-// const router = useRouter()
-
-// 상태 관리
 const selectedMenu = ref('orders')
 
-// 사용자 정보
 const userInfo = ref({
   nickname: '',
   email: '',
@@ -393,7 +293,11 @@ const normalizeSaleProduct = (item) => {
   const isSold = rawStatus.includes('완료') || rawStatus.toLowerCase().includes('sold')
 
   return {
-    code: item?.productCode ?? item?.code ?? item?.id ?? `product-${Math.random().toString(36).slice(2)}`,
+    code:
+      item?.productCode ??
+      item?.code ??
+      item?.id ??
+      `product-${Math.random().toString(36).slice(2)}`,
     name: item?.title ?? item?.productName ?? item?.name ?? '상품명 미확인',
     price: Number(item?.price ?? item?.productPrice ?? item?.amount ?? 0),
     status: isSold ? 'sold' : 'active',
@@ -447,153 +351,14 @@ const menus = [
   { id: 'settings', label: '설정', icon: '⚙️', badge: null },
 ]
 
-<<<<<<< Updated upstream
-// 주문 탭
-const orderTabs = ref([
-  { label: '전체', value: 'all', count: null },
-  { label: '입금대기', value: 'pending', count: null },
-  { label: '배송중', value: 'shipped', count: null },
-  { label: '구매확정', value: 'completed', count: null },
-])
-
-// 주문 데이터
-const orders = ref([])
-
-// 계산된 값
-const filteredOrders = computed(() => {
-  if (selectedOrderTab.value === 'all') {
-    return orders.value
-  }
-  return orders.value.filter((o) => o.status === selectedOrderTab.value)
-})
-=======
-// 판매 상품
-const saleProducts = ref([
-  {
-    id: 1,
-    name: '갤럭시 S23 Ultra 512GB',
-    price: 950000,
-    status: 'active',
-    views: 234,
-    likes: 45,
-    chats: 12,
-    image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop'
-  },
-  {
-    id: 2,
-    name: '아이패드 프로 11인치',
-    price: 800000,
-    status: 'active',
-    views: 156,
-    likes: 28,
-    chats: 8,
-    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
-  }
-])
-
-// 찜한 상품
-const likedProducts = ref([
-  {
-    id: 1,
-    name: '애플워치 시리즈 9',
-    price: 550000,
-    image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
-  },
-  {
-    id: 2,
-    name: '소니 WH-1000XM5',
-    price: 350000,
-    image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop'
-  },
-  {
-    id: 3,
-    name: '닌텐도 스위치 OLED',
-    price: 380000,
-    image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400&h=400&fit=crop'
-  }
-])
-
-// 리뷰
-const reviews = ref([
-  {
-    id: 1,
-    productName: '아이폰 14 Pro',
-    productImage: 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop',
-    rating: 5,
-    content: '상태 정말 좋고 판매자님도 친절하세요. 안전거래로 믿고 샀습니다!',
-    date: '2024-12-08'
-  },
-  {
-    id: 2,
-    productName: '갤럭시 버즈2 프로',
-    productImage: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
-    rating: 4,
-    content: '가성비 좋은 거래였습니다. 추천해요!',
-    date: '2024-12-01'
-  }
-])
-
->>>>>>> Stashed changes
-
-// 메서드
 const formatPrice = (price) => {
   return price.toLocaleString('ko-KR')
 }
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
-}
-
-<<<<<<< Updated upstream
-const getOrderStatusStyle = (status) => {
-  const styles = {
-    pending: 'bg-yellow-100 text-yellow-700',
-    shipped: 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700',
-  }
-  return styles[status] || 'bg-gray-100 text-gray-700'
-}
-
-const getOrderStatusText = (status) => {
-  const texts = {
-    pending: '입금대기',
-    shipped: '배송중',
-    completed: '구매확정',
-  }
-  return texts[status] || '알 수 없음'
-}
-
-=======
->>>>>>> Stashed changes
 const editProfile = () => {
   console.log('프로필 수정')
 }
 
-<<<<<<< Updated upstream
-const confirmOrder = async (orderCode) => {
-  if (confirm('구매를 확정하시겠습니까?')) {
-    console.log('구매 확정:', orderCode)
-    alert('구매가 확정되었습니다.')
-  }
-
-  const access = sessionStorage.getItem('accessToken')
-  if (!access) throw new Error('access 토큰이 없습니다.')
-
-  await api.patch(`/confirm/${orderCode}`, {
-    headers: { access },
-    withCredentials: true,
-  })
-
-  await router.push('/profile')
-}
-
-const viewOrderDetail = (orderCode) => {
-  console.log('주문 상세:', orderCode)
-}
-
-=======
->>>>>>> Stashed changes
 const goToRegister = () => {
   console.log('상품 등록 페이지로 이동')
   router.push('/register')
@@ -601,7 +366,7 @@ const goToRegister = () => {
 
 const editProduct = (productCode) => {
   console.log('상품 수정:', productCode)
-  //router.push('/')
+  // router.push('/')
 }
 
 const deleteProduct = async (productCode) => {
