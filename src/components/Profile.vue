@@ -15,6 +15,12 @@
               >
                 프로필 변경
               </button>
+              <button
+                @click="goToDeposit"
+                class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+              >
+                예치금 충전
+              </button>
             </div>
           </div>
 
@@ -362,6 +368,10 @@ const editProfile = () => {
 const goToRegister = () => {
   console.log('상품 등록 페이지로 이동')
   router.push('/register')
+}
+
+const goToDeposit = () => {
+  router.push('/checkout')
 }
 
 const editProduct = (productCode) => {
