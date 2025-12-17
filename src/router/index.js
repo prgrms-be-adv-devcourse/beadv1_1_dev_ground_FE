@@ -29,6 +29,31 @@ const routes = [
           requiresAuth: true,
         },
       },
+      {
+        path: 'checkout',
+        name: 'checkout',
+        component: () => import('@/components/Checkout.vue'),
+      },
+      {
+        path: 'view/payments/success',
+        name: 'paymentSuccess',
+        component: () => import('@/components/Success.vue'),
+      },
+      {
+        path: 'success',
+        name: 'success',
+        component: () => import('@/components/Success.vue'),
+      },
+      {
+        path: 'fail',
+        name: 'fail',
+        component: () => import('@/components/Fail.vue'),
+      },
+      {
+        path: 'view/payments/fail',
+        name: 'paymentFail',
+        component: () => import('@/components/Fail.vue'),
+      },
     ],
   },
 ]
