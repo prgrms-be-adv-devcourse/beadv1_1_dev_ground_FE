@@ -153,6 +153,7 @@
 <script setup>
 import router from '@/router'
 import { ref, onMounted } from 'vue' // computed removed
+import axios from 'axios'
 import { useCartStore } from '@/stores/cart' // Import Store
 import ChatModal from '@/components/ChatModal.vue'
 
@@ -186,36 +187,36 @@ const goToMyPage = () => {
   router.push('/profile')
 }
 
-const goToSell = () => {
-  console.log('판매하기 페이지로 이동')
-  // router.push('/sell')
-}
-
 const goToLogin = () => {
   console.log('로그인 페이지로 이동')
   router.push('/login')
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
   if (confirm('로그아웃 하시겠습니까?')) {
-    clearTokens()
-    userName.value = ''
-    cartCount.value = 0
-    unreadChatCount.value = 0
-    showMobileMenu.value = false
-    console.log('로그아웃 완료')
-    // router.push('/')
-    isLoggedIn.value = false
+    try {
+      const access = sessionStorage.getItem('accessToken') || accessToken.value
+      await axios.post(
+        '/api/users/logout',
+        {},
+        {
+          headers: access ? { access } : {},
+          withCredentials: true,
+        },
+      )
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패', error)
+      // API 실패해도 클라이언트 상태는 정리
+    } finally {
+      clearTokens()
+      userName.value = ''
+      cartCount.value = 0
+      unreadChatCount.value = 0
+      showMobileMenu.value = false
+      isLoggedIn.value = false
+      router.push('/')
+    }
   }
-}
-
-// 토큰 저장
-const saveTokens = (access, refresh) => {
-  accessToken.value = access
-  refreshToken.value = refresh
-  localStorage.setItem('accessToken', access)
-  localStorage.setItem('refreshToken', refresh)
-  isLoggedIn.value = true
 }
 
 // 토큰 로드
@@ -233,8 +234,8 @@ const loadTokens = () => {
 const clearTokens = () => {
   accessToken.value = null
   refreshToken.value = null
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
+  sessionStorage.removeItem('accessToken')
+  //localStorage.removeItem('refreshToken')
   isLoggedIn.value = false
 }
 
