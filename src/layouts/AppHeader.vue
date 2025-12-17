@@ -84,7 +84,7 @@
 
             <!-- Chat -->
             <button
-              @click="showChatModal = true"
+              @click="chatStore.toggle()"
               class="group relative inline-flex items-center justify-center h-10 w-10 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
               aria-label="채팅"
             >
@@ -144,9 +144,10 @@
     </div>
   </header>
   <ChatModal
-    :open="showChatModal"
-    @close="showChatModal = false"
-    @unread-update="unreadChatCount = $event"
+    :open="isChatOpen"
+    :initial-room-id="targetRoomId"
+    @close="chatStore.close"
+    @unread-update="chatStore.setUnreadCount"
   />
 </template>
 
@@ -155,14 +156,18 @@ import router from '@/router'
 import { ref, onMounted, watch, computed } from 'vue' // computed removed
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { ref, onMounted, computed } from 'vue' // computed removed
 import { useCartStore } from '@/stores/cart' // Import Store
 import ChatModal from '@/components/ChatModal.vue'
+import { useChatStore } from '@/stores/chat'
 
 import { storeToRefs } from 'pinia'
 import { api } from '@/api/index.js'
 
 const cartStore = useCartStore()
 const { count: cartCount } = storeToRefs(cartStore)
+const chatStore = useChatStore()
+const { isOpen: isChatOpen, unreadCount: unreadChatCount, targetRoomId } = storeToRefs(chatStore)
 const route = useRoute()
 
 // 상태 관리
@@ -177,25 +182,33 @@ const unreadChatCount = ref(0)
 const balance = ref(0)
 const isLoggedIn = ref(false)
 const formattedBalance = computed(() => `${balance.value.toLocaleString('ko-KR')} 원`)
+const userName = ref('')
+// 상태 관리
+const showMobileMenu = ref(false)
 
 // const isLoggedIn = ref(true)true
 
 const isLoggedIn = computed(() => {
   const access = sessionStorage.getItem('accessToken')
-  return !!access;
+  return !!access
 })
 
 // 메서드
 const goToCart = () => {
   console.log('장바구니로 이동')
   showMobileMenu.value = false
-  router.push('/cart')
+  router.push('cart')
 }
 
 const goToMyPage = () => {
   console.log('마이페이지로 이동')
   showMobileMenu.value = false
-  router.push('/profile')
+  // router.push('/mypage')
+}
+
+const goToSell = () => {
+  console.log('판매하기 페이지로 이동')
+  // router.push('/sell')
 }
 
 const goToLogin = () => {
