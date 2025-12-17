@@ -25,7 +25,7 @@
               <span class="text-lg leading-none">👤</span>
               <span class="leading-tight">
                 <div class="text-sm font-semibold text-gray-800">
-                  {{ userName }}테스트<span class="text-gray-400 font-medium">님</span>
+                  {{ userInfo.nickname }}<span class="text-gray-400 font-medium">님</span>
                 </div>
               </span>
 
@@ -49,7 +49,7 @@
               aria-label="예치금"
             >
               <span class="text-lg leading-none">💸</span>
-              <span class="text-sm font-semibold">1,000 원 </span>
+              <span class="text-sm font-semibold">{{ formattedBalance }}</span>
             </div>
 
             <!-- divider -->
@@ -152,15 +152,18 @@
 
 <script setup>
 import router from '@/router'
-import { ref, onMounted } from 'vue' // computed removed
+import { ref, onMounted, watch, computed } from 'vue' // computed removed
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useCartStore } from '@/stores/cart' // Import Store
 import ChatModal from '@/components/ChatModal.vue'
 
 import { storeToRefs } from 'pinia'
+import { api } from '@/api/index.js'
 
 const cartStore = useCartStore()
 const { count: cartCount } = storeToRefs(cartStore)
+const route = useRoute()
 
 // 상태 관리
 const showMobileMenu = ref(false)
@@ -169,10 +172,11 @@ const showChatModal = ref(false)
 // 인증 관련 상태
 const accessToken = ref(null)
 const refreshToken = ref(null)
-const userName = ref('')
+const userInfo = ref({ nickname: '' })
 const unreadChatCount = ref(0)
-
-const isLoggedIn = ref(true)
+const balance = ref(0)
+const isLoggedIn = ref(false)
+const formattedBalance = computed(() => `${balance.value.toLocaleString('ko-KR')} 원`)
 
 // 메서드
 const goToCart = () => {
@@ -209,7 +213,7 @@ const handleLogout = async () => {
       // API 실패해도 클라이언트 상태는 정리
     } finally {
       clearTokens()
-      userName.value = ''
+      userInfo.value.nickname = ''
       cartCount.value = 0
       unreadChatCount.value = 0
       showMobileMenu.value = false
@@ -239,23 +243,65 @@ const clearTokens = () => {
 // 유저 정보 가져오기
 const fetchUserInfo = async () => {
   try {
-    // TODO: 실제 API 호출로 변경
-    // const response = await axios.get('/api/users/me')
-    // userName.value = response.data.name
-    userName.value = '사용자' // 임시
+    const response = await api.get('/users/');
+    const payload = response?.data?.data ?? response?.data ?? response;
+    if (!payload) return;
+
+    //닉네임
+    const { nickname } = payload || {}
+    if (nickname) {
+      userInfo.value.nickname = nickname
+    }
+
+    //예치금
+    const depositResponse = await api.get('/deposits')
+    const depositPayload =
+      depositResponse?.data?.data ?? depositResponse?.data ?? depositResponse
+    const nextBalance = Number(depositPayload?.balance)
+    if (!Number.isNaN(nextBalance)) {
+      balance.value = nextBalance
+    }
+
+
   } catch (error) {
     console.error('유저 정보 조회 실패:', error)
   }
 }
 
-// 컴포넌트 마운트시 토큰 로드 및 유저 정보 가져오기
+const checkLoginStatus = async () => {
+  try {
+    const { data } = await api.get('/users/isLogin', { withCredentials: true })
+    const loggedIn = data?.data === true || data === true
+    isLoggedIn.value = loggedIn
+
+    if (loggedIn) {
+      loadTokens()
+      fetchUserInfo()
+      cartStore.getCartInfo()
+    } else {
+      clearTokens()
+    }
+  } catch (error) {
+    console.error('로그인 상태 확인 실패:', error)
+    isLoggedIn.value = false
+    clearTokens()
+  }
+}
+
+// 컴포넌트 마운트시 토큰 로드 및 로그인 여부 체크
 onMounted(() => {
   loadTokens()
-  if (isLoggedIn.value) {
-    fetchUserInfo()
-    cartStore.getCartInfo() // Use store action
-  }
+  checkLoginStatus()
 })
+
+// 라우트 변경 시마다 로그인 상태를 재확인해 헤더에 반영
+watch(
+  () => route.fullPath,
+  () => {
+    loadTokens()
+    checkLoginStatus()
+  },
+)
 
 // 외부에서 사용할 수 있도록 로그인 함수 expose
 // defineExpose({
