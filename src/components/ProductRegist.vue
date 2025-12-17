@@ -95,7 +95,7 @@
               카테고리 <span class="text-red-500">*</span>
             </label>
 
-            <!-- 1단계: 최상위 카테고리 -->
+            <!-- 1단계 -->
             <select
               v-model="selectedCategory1"
               @change="handleCategory1Change"
@@ -108,7 +108,7 @@
               </option>
             </select>
 
-            <!-- 2단계: 하위 카테고리 -->
+            <!-- 2단계 -->
             <select
               v-if="level2Categories.length > 0"
               v-model="selectedCategory2"
@@ -122,7 +122,7 @@
               </option>
             </select>
 
-            <!-- 3단계: 하위 카테고리 -->
+            <!-- 3단계 -->
             <select
               v-if="level3Categories.length > 0"
               v-model="selectedCategory3"
@@ -136,7 +136,6 @@
               </option>
             </select>
 
-            <!-- 선택된 카테고리 경로 표시 -->
             <p v-if="categoryPath" class="mt-2 text-sm text-indigo-600">
               선택된 카테고리: {{ categoryPath }}
             </p>
@@ -254,12 +253,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { registProduct, saveProductImages } from '@/api/product'
+import { registProduct, saveProductImages, uploadImagesToS3 } from '@/api/product'
 import { getRootCategories, getChildCategories } from '@/api/category'
 
 const router = useRouter()
 
-// 폼 데이터
 const formData = ref({
   categoryId: null,
   title: '',
@@ -267,7 +265,6 @@ const formData = ref({
   price: null,
 })
 
-// 카테고리 관련
 const rootCategories = ref([])
 const level2Categories = ref([])
 const level3Categories = ref([])
@@ -278,16 +275,12 @@ const selectedCategory3 = ref('')
 
 const categoryNames = ref([])
 
-// 카테고리 경로 표시
-const categoryPath = computed(() => {
-  return categoryNames.value.join(' > ')
-})
+const categoryPath = computed(() => categoryNames.value.join(' > '))
 
-// 이미지 관련
 const selectedImages = ref([])
 const isSubmitting = ref(false)
 
-// 1단계 카테고리 변경
+// 1단계 변경
 const handleCategory1Change = async () => {
   selectedCategory2.value = ''
   selectedCategory3.value = ''
@@ -313,7 +306,7 @@ const handleCategory1Change = async () => {
   }
 }
 
-// 2단계 카테고리 변경
+// 2단계 변경
 const handleCategory2Change = async () => {
   selectedCategory3.value = ''
   level3Categories.value = []
@@ -337,7 +330,7 @@ const handleCategory2Change = async () => {
   }
 }
 
-// 3단계 카테고리 변경
+// 3단계 변경
 const handleCategory3Change = () => {
   if (!selectedCategory3.value) {
     categoryNames.value = categoryNames.value.slice(0, 2)
@@ -352,44 +345,34 @@ const handleCategory3Change = () => {
   formData.value.categoryId = selected.id
 }
 
-// 최상위 카테고리 조회
 const fetchRootCategories = async () => {
   try {
     const response = await getRootCategories()
-    if (response.data.success) {
-      rootCategories.value = response.data.data || []
-    }
+    if (response.data.success) rootCategories.value = response.data.data || []
   } catch (error) {
     console.error('카테고리 조회 실패:', error)
     alert('카테고리 목록을 불러오는데 실패했습니다.')
   }
 }
 
-// 2단계 카테고리 조회
 const fetchLevel2Categories = async (parentId) => {
   try {
     const response = await getChildCategories(parentId)
-    if (response.data.success) {
-      level2Categories.value = response.data.data || []
-    }
+    if (response.data.success) level2Categories.value = response.data.data || []
   } catch (error) {
     console.error('하위 카테고리 조회 실패:', error)
   }
 }
 
-// 3단계 카테고리 조회
 const fetchLevel3Categories = async (parentId) => {
   try {
     const response = await getChildCategories(parentId)
-    if (response.data.success) {
-      level3Categories.value = response.data.data || []
-    }
+    if (response.data.success) level3Categories.value = response.data.data || []
   } catch (error) {
     console.error('하위 카테고리 조회 실패:', error)
   }
 }
 
-// 이미지 선택 핸들러
 const handleImageSelect = (event) => {
   const files = Array.from(event.target.files)
   const remainingSlots = 10 - selectedImages.value.length
@@ -401,67 +384,40 @@ const handleImageSelect = (event) => {
   const filesToAdd = files.slice(0, remainingSlots)
 
   filesToAdd.forEach((file) => {
-    // 파일 확장자 추출
     const extension = file.name.split('.').pop().toLowerCase()
 
-    // 미리보기 URL 생성
     const reader = new FileReader()
     reader.onload = (e) => {
       selectedImages.value.push({
-        file: file,
-        extension: extension,
+        file,
+        extension,
         preview: e.target.result,
       })
     }
     reader.readAsDataURL(file)
   })
 
-  // 입력 초기화
   event.target.value = ''
 }
 
-// 이미지 제거
 const removeImage = (index) => {
   selectedImages.value.splice(index, 1)
 }
 
-// S3에 이미지 업로드 (fetch 사용 - CORS 이슈 방지)
-const uploadImagesToS3 = async (presignedUrls) => {
-  const uploadedUrls = []
+// 백그라운드 업로드/저장
+const uploadAndSaveImages = async (productCode, presignedUrls) => {
+  try {
+    const files = selectedImages.value.map((img) => img.file)
 
-  for (let i = 0; i < presignedUrls.length; i++) {
-    const presignedUrl = presignedUrls[i]
-    const imageFile = selectedImages.value[i].file
+    const uploadedUrls = await uploadImagesToS3(presignedUrls, files)
+    await saveProductImages(productCode, uploadedUrls)
 
-    try {
-      // Presigned URL로 직접 PUT 요청 (fetch 사용)
-      const response = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: imageFile,
-        headers: {
-          'Content-Type': imageFile.type,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`이미지 업로드 실패: ${response.statusText}`)
-      }
-
-      // ? 앞부분까지만 잘라서 실제 S3 URL 추출
-      const s3Url = presignedUrl.split('?')[0]
-      uploadedUrls.push(s3Url)
-
-      console.log(`✅ 이미지 ${i + 1} 업로드 성공`)
-    } catch (error) {
-      console.error(`❌ 이미지 ${i + 1} 업로드 실패:`, error)
-      throw new Error(`이미지 업로드에 실패했습니다: ${imageFile.name}`)
-    }
+    console.log('✅ 이미지 업로드 및 저장 완료')
+  } catch (error) {
+    console.error('❌ 이미지 처리 실패:', error)
   }
-
-  return uploadedUrls
 }
 
-// 폼 제출
 const handleSubmit = async () => {
   if (isSubmitting.value) return
 
@@ -473,7 +429,6 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    // 1. 이미지 확장자 추출 (빈 확장자 제외)
     let imageExtensions = null
 
     if (selectedImages.value.length > 0) {
@@ -481,10 +436,7 @@ const handleSubmit = async () => {
         .map((img) => img.extension)
         .filter((ext) => ext && ext.trim() !== '')
 
-      // 🔹 유효한 확장자가 있을 때만 배열 설정, 없으면 null 유지
-      if (validExtensions.length > 0) {
-        imageExtensions = validExtensions
-      }
+      if (validExtensions.length > 0) imageExtensions = validExtensions
     }
 
     const requestData = {
@@ -492,12 +444,9 @@ const handleSubmit = async () => {
       title: formData.value.title,
       description: formData.value.description,
       price: formData.value.price,
-      imageExtensions: imageExtensions, // null 또는 유효한 배열
+      imageExtensions,
     }
 
-    console.log('📤 상품 등록 요청:', requestData)
-
-    // 2. 상품 등록 API 호출
     const registResponse = await registProduct(requestData)
 
     if (!registResponse.data.success) {
@@ -506,15 +455,10 @@ const handleSubmit = async () => {
 
     const { productCode, presignedUrls } = registResponse.data.data
 
-    console.log('✅ 상품 등록 성공:', {
-      productCode,
-      presignedUrlCount: presignedUrls?.length || 0,
-    })
-
-    // 3. 상품 상세 페이지로 즉시 이동
+    // ✅ 상세 페이지로 즉시 이동
     router.push(`/productdetail/${productCode}`)
 
-    // 4. 이미지가 있으면 백그라운드에서 S3 업로드 및 이미지 URL 저장
+    // ✅ 백그라운드 이미지 업로드/저장
     if (presignedUrls && presignedUrls.length > 0) {
       uploadAndSaveImages(productCode, presignedUrls)
     }
@@ -525,39 +469,17 @@ const handleSubmit = async () => {
   }
 }
 
-// 이미지 업로드 및 저장 (백그라운드 처리)
-const uploadAndSaveImages = async (productCode, presignedUrls) => {
-  try {
-    console.log('📤 S3 이미지 업로드 시작...')
-
-    // S3에 이미지 업로드
-    const uploadedUrls = await uploadImagesToS3(presignedUrls)
-
-    console.log('✅ S3 업로드 완료, 로컬 저장 요청 중...')
-
-    // 로컬 이미지 저장 API 호출
-    await saveProductImages(productCode, uploadedUrls)
-
-    console.log('✅ 이미지 업로드 및 저장 완료')
-  } catch (error) {
-    console.error('❌ 이미지 처리 실패:', error)
-    // 이미지 처리 실패는 사용자에게 알리지 않음 (이미 페이지 이동했으므로)
-  }
-}
-
 onMounted(() => {
   fetchRootCategories()
 })
 </script>
 
 <style scoped>
-/* 숫자 입력 필드 화살표 제거 */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 input[type='number'] {
   -moz-appearance: textfield;
 }

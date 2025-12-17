@@ -124,56 +124,79 @@ export const registProduct = (data) => {
   })
 }
 
-/**
- * S3에 이미지 업로드 (Presigned URL 사용)
- * @param {string} presignedUrl - Presigned URL
- * @param {File} file - 업로드할 이미지 파일
- */
+const s3Axios = axios.create({
+  timeout: 60_000,
+  withCredentials: false,
+})
+
 export const uploadImageToS3 = async (presignedUrl, file) => {
-  // ⚠️ axios를 사용하지 않고 fetch 사용 (CORS 이슈 방지)
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
-    body: file,
+  const res = await s3Axios.put(presignedUrl, file, {
     headers: {
       'Content-Type': file.type,
     },
   })
 
-  if (!response.ok) {
-    throw new Error(`이미지 업로드 실패: ${response.statusText}`)
-  }
+  return res
+}
 
-  return response
+export const uploadImagesToS3 = async (presignedUrls, files) => {
+  if (!Array.isArray(presignedUrls) || !Array.isArray(files)) return []
+
+  await Promise.all(files.map((file, idx) => uploadImageToS3(presignedUrls[idx], file)))
+
+  return presignedUrls.map((u) => u.split('?')[0])
 }
 
 /**
- * 여러 이미지를 S3에 업로드
- * @param {string[]} presignedUrls - Presigned URL 배열
- * @param {File[]} files - 업로드할 이미지 파일 배열
+ * S3에 이미지 업로드 (Presigned URL 사용)
+ * @param {string} presignedUrl - Presigned URL
+ * @param {File} file - 업로드할 이미지 파일
  */
-export const uploadImagesToS3 = async (presignedUrls, files) => {
-  try {
-    await Promise.all(
-      files.map((file, index) =>
-        fetch(presignedUrls[index], {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
-        }).then((uploadRes) => {
-          if (!uploadRes.ok) {
-            throw new Error(`이미지 업로드 실패: ${uploadRes.statusText}`)
-          }
-          console.log(`✅ 이미지 업로드 성공: ${presignedUrls[index]}`)
-        }),
-      ),
-    )
-  } catch (error) {
-    console.error('이미지 업로드 중 에러:', error)
-    throw error
-  }
-}
+// export const uploadImageToS3 = async (presignedUrl, file) => {
+//   // ⚠️ axios를 사용하지 않고 fetch 사용 (CORS 이슈 방지)
+//   const response = await fetch(presignedUrl, {
+//     method: 'PUT',
+//     body: file,
+//     headers: {
+//       'Content-Type': file.type,
+//     },
+//   })
+
+//   if (!response.ok) {
+//     throw new Error(`이미지 업로드 실패: ${response.statusText}`)
+//   }
+
+//   return response
+// }
+
+// /**
+//  * 여러 이미지를 S3에 업로드
+//  * @param {string[]} presignedUrls - Presigned URL 배열
+//  * @param {File[]} files - 업로드할 이미지 파일 배열
+//  */
+// export const uploadImagesToS3 = async (presignedUrls, files) => {
+//   try {
+//     await Promise.all(
+//       files.map((file, index) =>
+//         fetch(presignedUrls[index], {
+//           method: 'PUT',
+//           body: file,
+//           headers: {
+//             'Content-Type': file.type,
+//           },
+//         }).then((uploadRes) => {
+//           if (!uploadRes.ok) {
+//             throw new Error(`이미지 업로드 실패: ${uploadRes.statusText}`)
+//           }
+//           console.log(`✅ 이미지 업로드 성공: ${presignedUrls[index]}`)
+//         }),
+//       ),
+//     )
+//   } catch (error) {
+//     console.error('이미지 업로드 중 에러:', error)
+//     throw error
+//   }
+// }
 
 /**
  * 상품 이미지 URL 저장 API
