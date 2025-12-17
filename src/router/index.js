@@ -54,6 +54,14 @@ const routes = [
         name: 'paymentFail',
         component: () => import('@/components/Fail.vue'),
       },
+      {
+        path: '/productupdate/:productCode',
+        name: 'ProductUpdate',
+        component: () => import('@/components/ProductUpdate.vue'),
+        meta: {
+          requiresAuth: true,
+        },
+      },
     ],
   },
 ]
