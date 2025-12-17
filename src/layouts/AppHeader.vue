@@ -221,11 +221,9 @@ const handleLogout = async () => {
 
 // 토큰 로드
 const loadTokens = () => {
-  const access = localStorage.getItem('accessToken')
-  const refresh = localStorage.getItem('refreshToken')
-  if (access && refresh) {
+  const access = sessionStorage.getItem('accessToken')
+  if (access) {
     accessToken.value = access
-    refreshToken.value = refresh
     isLoggedIn.value = true
   }
 }
@@ -235,7 +233,6 @@ const clearTokens = () => {
   accessToken.value = null
   refreshToken.value = null
   sessionStorage.removeItem('accessToken')
-  //localStorage.removeItem('refreshToken')
   isLoggedIn.value = false
 }
 
