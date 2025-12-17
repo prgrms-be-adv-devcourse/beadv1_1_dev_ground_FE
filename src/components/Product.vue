@@ -605,7 +605,23 @@ const products = ref([])
 const recommendedProducts = ref([])
 const recommendType = ref(null)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(5) // ✅ 5개로 복원
+
+const calcItemsPerPage = (w) => {
+  if (w >= 1280) return 5
+  if (w >= 1024) return 4
+  if (w >= 768) return 3
+  return 2
+}
+
+const itemsPerPage = ref(calcItemsPerPage(window.innerWidth))
+
+const handleResize = () => {
+  const next = calcItemsPerPage(window.innerWidth)
+  if (itemsPerPage.value !== next) {
+    itemsPerPage.value = next
+    currentRecommendPage.value = 0
+  }
+}
 
 const displayedRecommendations = computed(() => {
   if (recommendedProducts.value.length === 0) return []
@@ -1056,12 +1072,16 @@ onMounted(async () => {
   }
 
   document.addEventListener('click', handleClickOutside)
+
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   if (suggestionTimeout) clearTimeout(suggestionTimeout)
   abortSuggestRequest()
   document.removeEventListener('click', handleClickOutside)
+
+  window.removeEventListener('resize', handleResize)
 })
 
 watch(

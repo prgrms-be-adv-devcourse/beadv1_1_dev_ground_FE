@@ -435,7 +435,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
@@ -455,7 +455,23 @@ const recommendedProducts = ref([])
 const recommendType = ref(null) // 🔹 추가
 const loadingRecommend = ref(false)
 const currentRecommendPage = ref(0)
-const itemsPerPage = ref(5) // 🔹 5개로 복원
+
+const calcItemsPerPage = (w) => {
+  if (w >= 1280) return 5
+  if (w >= 1024) return 4
+  if (w >= 768) return 3
+  return 2
+}
+
+const itemsPerPage = ref(calcItemsPerPage(window.innerWidth))
+
+const handleResize = () => {
+  const next = calcItemsPerPage(window.innerWidth)
+  if (itemsPerPage.value !== next) {
+    itemsPerPage.value = next
+    currentRecommendPage.value = 0
+  }
+}
 
 const tabs = [
   { id: 'detail', name: '상세설명' },
@@ -595,6 +611,12 @@ const fetchRecommendations = async () => {
 // 🔹 초기 로드
 onMounted(async () => {
   await Promise.all([fetchProductDetail(), fetchUserInfo(), fetchRecommendations()])
+
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 // 🔹 라우트 파라미터 변경 감지 - 핵심 수정!
