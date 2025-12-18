@@ -377,17 +377,68 @@ const getCounterpartCode = (room) => {
 
 const isMine = (msg) => msg?.senderCode === userCode.value
 
+const extractNickname = (payload = {}, fallback = '') =>
+  payload?.nickname ||
+  payload?.user?.nickname ||
+  payload?.data?.nickname ||
+  payload?.profile?.nickname ||
+  payload?.name ||
+  fallback ||
+  '알 수 없음'
+
+const extractProfileImage = (payload = '') =>
+  payload?.profileImage ||
+  payload?.profileImageUrl ||
+  payload?.user?.profileImage ||
+  payload?.user?.profileImageUrl ||
+  ''
+
+// 판매자/구매자 정보를 동시에 조회 (백엔드 sample API 사용)
+const getUserInfos = async (sellerCode, buyerCode) => {
+  if (!sellerCode || !buyerCode) return null
+  const requester = await ensureUserCodeAsync()
+  if (!requester) return null
+  try {
+    const { data } = await api.get('/users/sample', {
+      headers: { 'X-CODE': requester },
+      params: { sellerCode, buyerCode },
+    })
+    const payload = data?.data || data || {}
+    const sellerPayload =
+      payload.seller || payload.sellerInfo || payload.sellerUser || payload.sellerUserInfo || {}
+    const buyerPayload =
+      payload.buyer || payload.buyerInfo || payload.buyerUser || payload.buyerUserInfo || {}
+
+    userProfiles.value = {
+      ...userProfiles.value,
+      [sellerCode]: {
+        nickname: extractNickname(sellerPayload, sellerCode),
+        profileImage: extractProfileImage(sellerPayload),
+      },
+      [buyerCode]: {
+        nickname: extractNickname(buyerPayload, buyerCode),
+        profileImage: extractProfileImage(buyerPayload),
+      },
+    }
+
+    return payload
+  } catch (e) {
+    console.error('유저 정보 조회 실패', e)
+    return null
+  }
+}
+
 const loadUserProfile = async (code) => {
   if (!code || userProfiles.value[code] || loadingProfileCodes.has(code)) return
   loadingProfileCodes.add(code)
   try {
-    const { data } = await api.get('/users/')
+    const { data } = await api.get('/users/', { headers: { 'X-CODE': code } })
     const payload = data?.data || data
     userProfiles.value = {
       ...userProfiles.value,
       [code]: {
-        nickname: payload?.nickname || code,
-        profileImage: payload?.profileImage || payload?.profileImageUrl || '',
+        nickname: extractNickname(payload, code),
+        profileImage: extractProfileImage(payload),
       },
     }
   } catch (e) {
@@ -480,7 +531,8 @@ const connectStomp = (chatId) =>
       disconnectStomp()
       const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
       // 게이트웨이 경유: /api/chat/ws-chat -> gateway에서 /ws-chat 으로 rewrite
-      const socket = new WebSocket(`wss://dbay.site/api/chat/ws-chat`)
+      const socket = new WebSocket(`ws://localhost:8000/api/chat/ws-chat`)
+      //const socket = new WebSocket(`wss://dbay.site/api/chat/ws-chat`)
       const client = Stomp.over(socket)
       client.debug = () => {}
       client.connect(
@@ -601,6 +653,7 @@ const selectRoom = async (room) => {
   selectedRoom.value = room
   console.log(selectedRoom.value)
   messages.value = []
+  getUserInfos(room.sellerCode, room.buyerCode);
   prefetchProfiles([room.sellerCode, room.buyerCode, userCode.value])
   await connectStomp(room.id) // 구독 먼저
   await loadMessages(room.id) // 이 호출에서 읽음 이벤트 발생 → 구독 후라 놓치지 않음

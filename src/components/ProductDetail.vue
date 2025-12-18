@@ -263,7 +263,7 @@
               </div>
 
               <button
-                @click="handleBuyNow(product.title, product.productCode)"
+                @click="handleBuyNow"
                 class="w-full py-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors text-lg"
               >
                 주문하기
@@ -440,7 +440,6 @@ import { getProductDetail, recommendByProductDetail } from '@/api/product'
 import { getUserInfo } from '@/api/user'
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
-import { createOrder } from '@/api/order'
 
 const router = useRouter()
 const route = useRoute()
@@ -576,13 +575,8 @@ const handleAddToCart = async () => {
   }
 }
 
-const handleBuyNow = async (productName, productCode) => {
-  console.log(productName)
-  if (confirm(`${productName} 상품을 주문하시겠습니까?`)) {
-    await createOrder(productCode)
-    alert('주문이 완료되었습니다.')
-    return;
-  }
+const handleBuyNow = () => {
+  alert('주문 기능은 준비 중입니다.')
 }
 
 const goToProduct = (productCode) => {

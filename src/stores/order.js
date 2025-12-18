@@ -21,10 +21,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getAllOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "" }
-            const data = await getOrders(params)
+            payload.orderStatus = "All"
+            const data = await getOrders(payload)
             orderList.value = data
-            count.value.All = data.totalItems || 0
+            count.value.All = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
@@ -32,10 +32,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getPaidOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "PAID" }
-            const data = await getOrders(params)
+            payload.orderStatus = "Paid"
+            const data = await getOrders(payload)
             paidOrderList.value = data
-            count.value.Paid = data.totalItems || 0
+            count.value.Paid = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
@@ -43,10 +43,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getDeliveryOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "START_DELIVERY" }
-            const data = await getOrders(params)
+            payload.orderStatus = "StartDelivery"
+            const data = await getOrders(payload)
             deliveryOrderList.value = data
-            count.value.StartDelivery = data.totalItems || 0
+            count.value.StartDelivery = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
@@ -54,10 +54,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getDeliveredOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "DELIVERED" }
-            const data = await getOrders(params)
+            payload.orderStatus = "Delivered"
+            const data = await getOrders(payload)
             deliveredOrderList.value = data
-            count.value.Delivered = data.totalItems || 0
+            count.value.Delivered = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
@@ -65,10 +65,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getConfirmedOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "CONFIRMED" }
-            const data = await getOrders(params)
+            payload.orderStatus = "Confirmed"
+            const data = await getOrders(payload)
             confirmedOrderList.value = data
-            count.value.Confirmed = data.totalItems || 0
+            count.value.Confirmed = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
@@ -76,10 +76,10 @@ export const useOrderStore = defineStore('order', () => {
 
     const getCancelledOrderList = async (payload) => {
         try {
-            const params = { ...payload, orderStatus: "CANCELLED" }
-            const data = await getOrders(params)
+            payload.orderStatus = "Cancelled"
+            const data = await getOrders(payload)
             cancelledOrderList.value = data
-            count.value.Cancelled = data.totalItems || 0
+            count.value.Cancelled = data.length
         } catch (error) {
             console.error('주문 목록 조회 실패:', error)
         }
