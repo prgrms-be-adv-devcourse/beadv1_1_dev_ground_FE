@@ -75,7 +75,6 @@
           </p>
 
           <div class="grid grid-cols-5 gap-4">
-            <!-- 이미지 업로드 버튼 -->
             <label
               v-if="totalImageCount < 10"
               class="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
@@ -103,14 +102,13 @@
               />
             </label>
 
-            <!-- 선택된 새 이미지 미리보기 -->
             <div
               v-for="(image, index) in newImages"
               :key="`new-${index}`"
               class="relative aspect-square border border-gray-200 rounded-lg overflow-hidden group"
             >
               <img
-                :src="image.preview"
+                :src="image.previewUrl"
                 :alt="`새 이미지 ${index + 1}`"
                 class="w-full h-full object-cover"
               />
@@ -136,7 +134,6 @@
         <div class="bg-white rounded-xl shadow-sm p-6 space-y-6">
           <h2 class="text-lg font-semibold text-gray-900">기본 정보</h2>
 
-          <!-- 상품명 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               상품명 <span class="text-red-500">*</span>
@@ -151,7 +148,6 @@
             />
           </div>
 
-          <!-- 가격 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               가격 <span class="text-red-500">*</span>
@@ -169,7 +165,6 @@
             </div>
           </div>
 
-          <!-- 상품 설명 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               상품 설명 <span class="text-red-500">*</span>
@@ -211,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getProductDetail, updateProduct, uploadImagesToS3, saveProductImages } from '@/api/product'
 
@@ -222,9 +217,13 @@ const loading = ref(true)
 const isSubmitting = ref(false)
 
 const originalProduct = ref(null)
+
+// 기존 이미지(S3 진짜 URL만)
 const existingImages = ref([])
-const newImages = ref([])
 const deletedImageUrls = ref([])
+
+// 새 이미지(프리뷰는 ObjectURL)
+const newImages = ref([]) // { file, extension, previewUrl }
 
 const formData = ref({
   title: '',
@@ -232,23 +231,59 @@ const formData = ref({
   price: 0,
 })
 
-const totalImageCount = computed(() => {
-  return existingImages.value.length + newImages.value.length
-})
+const productCode = computed(() => String(route.params.productCode || ''))
+const totalImageCount = computed(() => existingImages.value.length + newImages.value.length)
+
+// ✅ 변경: 확장자 화이트리스트 + normalize
+const ALLOWED_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
+const normalizeExt = (ext) => {
+  if (!ext) return null
+  return String(ext).toLowerCase().replace('.', '')
+}
+
+// ✅ 변경: deleteUrls에 들어갈 수 있는 URL만 통과 (placeholder/로컬 URL 차단)
+const isValidS3ProductImageUrl = (url) => {
+  try {
+    if (!url) return false
+    const u = new URL(url)
+    if (!u.protocol.startsWith('http')) return false
+    if (!productCode.value) return false
+    // 필요하면 /products/ 케이스까지 허용
+    return (
+      u.pathname.includes(`/product/${productCode.value}/`) ||
+      u.pathname.includes(`/products/${productCode.value}/`)
+    )
+  } catch {
+    return false
+  }
+}
+
+const revokeObjectUrl = (previewUrl) => {
+  if (previewUrl) URL.revokeObjectURL(previewUrl)
+}
 
 const removeExistingImage = (index) => {
   const deletedUrl = existingImages.value[index]
-  deletedImageUrls.value.push(deletedUrl)
+  if (isValidS3ProductImageUrl(deletedUrl)) {
+    deletedImageUrls.value.push(deletedUrl)
+  }
   existingImages.value.splice(index, 1)
 }
 
 const removeNewImage = (index) => {
+  const target = newImages.value[index]
+  revokeObjectUrl(target?.previewUrl)
   newImages.value.splice(index, 1)
 }
 
 const handleImageSelect = (event) => {
-  const files = Array.from(event.target.files)
+  const files = Array.from(event.target.files || [])
   const remainingSlots = 10 - totalImageCount.value
+
+  if (remainingSlots <= 0) {
+    event.target.value = ''
+    return
+  }
 
   if (files.length > remainingSlots) {
     alert(`최대 10장까지만 등록 가능합니다. ${remainingSlots}장만 추가됩니다.`)
@@ -256,91 +291,30 @@ const handleImageSelect = (event) => {
 
   const filesToAdd = files.slice(0, remainingSlots)
 
-  filesToAdd.forEach((file) => {
-    const extension = file.name.split('.').pop().toLowerCase()
+  for (const file of filesToAdd) {
+    const rawExt = file.name.includes('.') ? file.name.split('.').pop() : ''
+    const ext = normalizeExt(rawExt)
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      newImages.value.push({
-        file,
-        extension,
-        preview: e.target.result,
-      })
+    if (!ext || !ALLOWED_EXT.has(ext)) {
+      alert(
+        `지원하지 않는 이미지 확장자입니다: ${rawExt || '(없음)'}\n(jpg, jpeg, png, webp, gif만 가능)`,
+      )
+      continue
     }
-    reader.readAsDataURL(file)
-  })
+
+    const previewUrl = URL.createObjectURL(file)
+    newImages.value.push({ file, extension: ext, previewUrl })
+  }
 
   event.target.value = ''
-}
-
-const uploadAndSaveNewImages = async (productCode, presignedUrls) => {
-  try {
-    const files = newImages.value.map((img) => img.file)
-
-    const uploadedUrls = await uploadImagesToS3(presignedUrls, files)
-    await saveProductImages(productCode, uploadedUrls)
-
-    console.log('✅ 새 이미지 업로드 및 저장 완료')
-  } catch (error) {
-    console.error('❌ 이미지 처리 실패:', error)
-  }
-}
-
-const handleSubmit = async () => {
-  if (isSubmitting.value) return
-
-  isSubmitting.value = true
-
-  try {
-    const productCode = route.params.productCode
-
-    let newImageExtensions = null
-
-    if (newImages.value.length > 0) {
-      const validExtensions = newImages.value
-        .map((img) => img.extension)
-        .filter((ext) => ext && ext.trim() !== '')
-
-      if (validExtensions.length > 0) {
-        newImageExtensions = validExtensions
-      }
-    }
-
-    const requestData = {
-      title: formData.value.title,
-      description: formData.value.description,
-      price: formData.value.price,
-      deleteUrls: deletedImageUrls.value.length > 0 ? deletedImageUrls.value : null,
-      newImageExtensions: newImageExtensions,
-    }
-
-    const updateResponse = await updateProduct(productCode, requestData)
-
-    if (!updateResponse.data.success) {
-      throw new Error(updateResponse.data.msg || '상품 수정에 실패했습니다.')
-    }
-
-    const { presignedUrl } = updateResponse.data.data
-
-    // ✅ 상세 페이지로 즉시 이동
-    router.push(`/productdetail/${productCode}`)
-
-    // ✅ 백그라운드 새 이미지 업로드/저장
-    if (presignedUrl && presignedUrl.length > 0) {
-      uploadAndSaveNewImages(productCode, presignedUrl)
-    }
-  } catch (error) {
-    console.error('❌ 상품 수정 실패:', error)
-    alert(error.message || '상품 수정 중 오류가 발생했습니다.')
-    isSubmitting.value = false
-  }
 }
 
 const fetchProductDetail = async () => {
   loading.value = true
   try {
-    const productCode = route.params.productCode
-    const response = await getProductDetail(productCode)
+    if (!productCode.value) throw new Error('productCode가 없습니다.')
+
+    const response = await getProductDetail(productCode.value)
 
     if (response.data.success && response.data.data) {
       originalProduct.value = response.data.data
@@ -349,23 +323,113 @@ const fetchProductDetail = async () => {
       formData.value.description = originalProduct.value.description
       formData.value.price = originalProduct.value.price
 
-      if (originalProduct.value.imageUrls && originalProduct.value.imageUrls.length > 0) {
-        existingImages.value = [...originalProduct.value.imageUrls]
-      }
+      const urls = Array.isArray(originalProduct.value.imageUrls)
+        ? originalProduct.value.imageUrls
+        : []
+
+      // ✅ 변경: 기존 이미지도 필터링해서 placeholder/이상한 URL 섞이는 순간 백 validate 터지는 것 방지
+      existingImages.value = urls.filter((u) => isValidS3ProductImageUrl(u))
     } else {
       throw new Error(response.data.msg || '상품 정보를 불러올 수 없습니다.')
     }
   } catch (error) {
     console.error('❌ 상품 정보 조회 실패:', error)
-    alert(error.message || '상품 정보를 불러오는데 실패했습니다.')
+    alert(error?.response?.data?.msg || error.message || '상품 정보를 불러오는데 실패했습니다.')
     router.back()
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  fetchProductDetail()
+// ✅ 변경: 상세 페이지 자동 갱신 이벤트(등록 페이지와 동일한 방식)
+const emitImagesUpdated = (code, urls) => {
+  window.dispatchEvent(
+    new CustomEvent('product-images-updated', {
+      detail: { productCode: String(code), urls },
+    }),
+  )
+}
+
+const handleSubmit = async () => {
+  if (isSubmitting.value) return
+  if (!productCode.value) {
+    alert('productCode가 없습니다.')
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    // ✅ 변경: 백에서 presigned 생성에 쓰는 확장자 (newImageExtensions) 준비
+    const newImageExtensions =
+      newImages.value.length > 0
+        ? newImages.value.map((img) => img.extension).filter(Boolean)
+        : null
+
+    const requestData = {
+      title: formData.value.title,
+      description: formData.value.description,
+      price: formData.value.price,
+      deleteUrls: deletedImageUrls.value.length > 0 ? deletedImageUrls.value : null,
+      newImageExtensions: newImageExtensions?.length ? newImageExtensions : null,
+    }
+
+    console.log('[ProductUpdate] PATCH payload:', requestData)
+
+    // 1) 상품 수정 + (삭제/신규확장자 있으면) presigned 발급까지 백에서 처리
+    const updateResponse = await updateProduct(productCode.value, requestData)
+
+    console.log('?')
+
+    if (!updateResponse.data?.success) {
+      throw new Error(updateResponse.data?.msg || '상품 수정에 실패했습니다.')
+    }
+
+    console.log('!')
+
+    // ✅ 변경: presigned 응답 필드 흔들려도 안전하게 처리 + 문자열로 강제 변환
+    const data = updateResponse.data?.data || {}
+    const presignedRaw = data.newPresignedUrls ?? data.presignedUrls ?? data.presignedUrl ?? []
+    const presignedUrls = Array.isArray(presignedRaw) ? presignedRaw.map((u) => String(u)) : []
+
+    // 2) 새 이미지가 있다면: presigned 개수 검증 → S3 업로드 → 업로드 URL 로컬(DB) 저장
+    if (newImages.value.length > 0) {
+      if (presignedUrls.length < newImages.value.length) {
+        throw new Error(
+          `Presigned URL이 부족합니다. (필요 ${newImages.value.length} / 응답 ${presignedUrls.length})`,
+        )
+      }
+
+      const files = newImages.value.map((img) => img.file)
+
+      const uploadedUrls = await uploadImagesToS3(presignedUrls, files)
+
+      const saveRes = await saveProductImages(productCode.value, uploadedUrls)
+
+      console.log(saveRes)
+
+      if (!saveRes.data?.status > 300) {
+        throw new Error(saveRes.data?.msg || '상품 이미지 URL 저장에 실패했습니다.')
+      }
+
+      // ✅ 변경: 상세가 이벤트를 듣고 있으면 즉시 갱신
+      emitImagesUpdated(productCode.value, uploadedUrls)
+    }
+
+    // ✅ 변경: “삭제 + 신규 업로드/저장”까지 모두 끝난 뒤 이동 → 상세에서 이미지 흔들림 제거
+    router.push(`/productdetail/${productCode.value}`)
+  } catch (error) {
+    console.error('❌ 상품 수정 실패:', error)
+    alert(error?.response?.data?.msg || error.message || '상품 수정 중 오류가 발생했습니다.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+onMounted(fetchProductDetail)
+
+onBeforeUnmount(() => {
+  newImages.value.forEach((img) => revokeObjectUrl(img.previewUrl))
 })
 </script>
 

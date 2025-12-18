@@ -85,14 +85,14 @@ export const suggestRelated = (params = {}) => {
 export const getProductDetail = (productCode) => {
   if (!productCode) throw new Error('productCode is required')
 
-  const accessToken = sessionStorage.getItem("accessToken")
+  const accessToken = sessionStorage.getItem('accessToken')
 
   const headers = {}
   if (accessToken) {
     headers['access'] = accessToken
   }
 
-  return axios.get(`/api/products/${productCode}`, {headers})
+  return axios.get(`/api/products/${productCode}`, { headers })
 }
 
 export const getUserProducts = ({ page = 1, size = 10 } = {}) => {

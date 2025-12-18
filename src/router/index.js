@@ -12,7 +12,7 @@ const routes = [
       { path: 'deposit', name: 'deposit', component: () => import('@/components/Deposit.vue') },
       { path: 'profile', name: 'profile', component: () => import('@/components/Profile.vue') },
       {
-        path: 'productDetail/:id',
+        path: 'productDetail/:productCode',
         name: 'productDetail',
         component: () => import('@/components/ProductDetail.vue'),
       },

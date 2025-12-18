@@ -384,7 +384,7 @@ const handleImageSelect = (event) => {
   const filesToAdd = files.slice(0, remainingSlots)
 
   filesToAdd.forEach((file) => {
-    const extension = file.name.split('.').pop().toLowerCase()
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
 
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -404,18 +404,23 @@ const removeImage = (index) => {
   selectedImages.value.splice(index, 1)
 }
 
+const emitImagesUpdated = (code, urls) => {
+  window.dispatchEvent(
+    new CustomEvent('product-images-updated', {
+      detail: { productCode: String(code), urls },
+    }),
+  )
+}
+
 // 백그라운드 업로드/저장
 const uploadAndSaveImages = async (productCode, presignedUrls) => {
-  try {
-    const files = selectedImages.value.map((img) => img.file)
+  const files = selectedImages.value.map((img) => img.file)
 
-    const uploadedUrls = await uploadImagesToS3(presignedUrls, files)
-    await saveProductImages(productCode, uploadedUrls)
+  const uploadedUrls = await uploadImagesToS3(presignedUrls, files)
+  await saveProductImages(productCode, uploadedUrls)
 
-    console.log('✅ 이미지 업로드 및 저장 완료')
-  } catch (error) {
-    console.error('❌ 이미지 처리 실패:', error)
-  }
+  emitImagesUpdated(productCode, uploadedUrls)
+  console.log('✅ 이미지 업로드 및 저장 완료')
 }
 
 const handleSubmit = async () => {
@@ -455,12 +460,14 @@ const handleSubmit = async () => {
 
     const { productCode, presignedUrls } = registResponse.data.data
 
-    // ✅ 상세 페이지로 즉시 이동
+    // ✅ 상세 페이지로 즉시 이동 (폴링 X)
     router.push(`/productdetail/${productCode}`)
 
-    // ✅ 백그라운드 이미지 업로드/저장
+    // ✅ 백그라운드 이미지 업로드/저장 → 완료 이벤트로 상세 자동 렌더링
     if (presignedUrls && presignedUrls.length > 0) {
-      uploadAndSaveImages(productCode, presignedUrls)
+      uploadAndSaveImages(productCode, presignedUrls).catch((e) => {
+        console.error('❌ 이미지 처리 실패:', e)
+      })
     }
   } catch (error) {
     console.error('❌ 상품 등록 실패:', error)

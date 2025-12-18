@@ -225,9 +225,9 @@ const clearTokens = () => {
 // 유저 정보 가져오기
 const fetchUserInfo = async () => {
   try {
-    const response = await api.get('/users/');
-    const payload = response?.data?.data ?? response?.data ?? response;
-    if (!payload) return;
+    const response = await api.get('/users/')
+    const payload = response?.data?.data ?? response?.data ?? response
+    if (!payload) return
 
     //닉네임
     const { nickname } = payload || {}
