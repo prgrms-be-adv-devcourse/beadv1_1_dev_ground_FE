@@ -463,18 +463,14 @@ import { useRouter, useRoute } from 'vue-router'
 
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
-<<<<<<< HEAD
 import { createOrder } from '@/api/order'
-=======
-
->>>>>>> 69f1282 ([FEAT] 상품 수정 및 삭제 구현 완료)
 import { getProductDetail, recommendByProductDetail, deleteProduct } from '@/api/product'
 import { getUserInfoByCode } from '@/api/user'
 
 const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
-const cartStore = useCartStore()
+const cartStore = useChatStore()
 
 const loading = ref(true)
 const error = ref(null)
@@ -660,7 +656,6 @@ const handleChat = async () => {
   }
 }
 
-<<<<<<< HEAD
 const handleAddToCart = async (productCode) => {
   console.log(productCode)
   if (confirm(`장바구니에 담으시겠습니까?`)) {
@@ -680,9 +675,6 @@ const handleBuyNow = async (productName, productCode) => {
 }
 
 // 상품 수정 핸들러
-=======
-// ✅ 수정 버튼: 라우터 param명 혼동 방지
->>>>>>> 69f1282 ([FEAT] 상품 수정 및 삭제 구현 완료)
 const handleEdit = () => {
   const productCode = resolveProductCode()
   if (!productCode) {
@@ -714,13 +706,6 @@ const handleDelete = async () => {
 const goToProduct = async (productCode) => {
   await router.push(`/productDetail/${productCode}`)
 }
-
-const handleAddToCart = async () => {
-  const confirmed = confirm('장바구니에 추가하시겠습니까?')
-  if (confirmed) alert('장바구니에 추가되었습니다.')
-}
-
-const handleBuyNow = () => alert('주문 기능은 준비 중입니다.')
 
 onMounted(async () => {
   fetchCurrentUserCode()
