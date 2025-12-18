@@ -143,6 +143,7 @@
       </div>
     </div>
   </header>
+
   <ChatModal
     :open="isChatOpen"
     :initial-room-id="targetRoomId"
@@ -201,31 +202,6 @@ const openChat = () => {
   chatStore.open()
 }
 
-const handleLogout = async () => {
-  if (!confirm('로그아웃 하시겠습니까?')) return
-  try {
-    const access = sessionStorage.getItem('accessToken') || accessToken.value
-    await axios.post(
-      '/api/users/logout',
-      {},
-      {
-        headers: access ? { access } : {},
-        withCredentials: true,
-      },
-    )
-  } catch (error) {
-    console.error('로그아웃 API 호출 실패', error)
-    // API 실패해도 클라이언트 상태는 정리
-  } finally {
-    clearTokens()
-    userInfo.value.nickname = ''
-    cartCount.value = 0
-    unreadCount.value = 0
-    showMobileMenu.value = false
-    isLoggedIn.value = false
-    router.push('/')
-  }
-}
 
 // 토큰 로드
 const loadTokens = () => {
@@ -243,6 +219,7 @@ const clearTokens = () => {
   accessToken.value = null
   refreshToken.value = null
   sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('X-CODE')
   isLoggedIn.value = false
 }
 
@@ -255,20 +232,13 @@ const fetchUserInfo = async () => {
 
     //닉네임
     const { nickname } = payload || {}
-    if (nickname) {
-      userInfo.value.nickname = nickname
-    }
+    if (nickname) userInfo.value.nickname = nickname
 
     //예치금
     const depositResponse = await api.get('/deposits')
-    const depositPayload =
-      depositResponse?.data?.data ?? depositResponse?.data ?? depositResponse
+    const depositPayload = depositResponse?.data?.data ?? depositResponse?.data ?? depositResponse
     const nextBalance = Number(depositPayload?.balance)
-    if (!Number.isNaN(nextBalance)) {
-      balance.value = nextBalance
-    }
-
-
+    if (!Number.isNaN(nextBalance)) balance.value = nextBalance
   } catch (error) {
     console.error('유저 정보 조회 실패:', error)
   }
@@ -294,7 +264,35 @@ const checkLoginStatus = async () => {
   }
 }
 
-// 컴포넌트 마운트시 토큰 로드 및 로그인 여부 체크
+// 로그아웃
+const handleLogout = async () => {
+  if (!confirm('로그아웃 하시겠습니까?')) return
+
+  try {
+    const access = sessionStorage.getItem('accessToken') || accessToken.value
+    await api.post(
+      '/users/logout',
+      {},
+      {
+        headers: access ? { access } : {},
+        withCredentials: true,
+      },
+    )
+  } catch (error) {
+    console.error('로그아웃 API 호출 실패', error)
+  } finally {
+    clearTokens()
+    userInfo.value.nickname = ''
+    cartCount.value = 0
+    chatStore.setUnreadCount(0)
+    chatStore.close()
+    showMobileMenu.value = false
+    isLoggedIn.value = false
+    router.push('/')
+  }
+}
+
+// 마운트 + 라우트 변경 시 로그인 상태 반영
 onMounted(() => {
   loadTokens()
   checkLoginStatus()
