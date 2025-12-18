@@ -542,6 +542,16 @@ const handleImageError = (e) => {
   e.target.style.display = 'none'
 }
 
+const handleMainImageError = (e) => {
+  console.warn('메인 이미지 로드 실패')
+  e.target.style.display = 'none'
+}
+
+const handleThumbnailError = (e) => {
+  console.warn('썸네일 이미지 로드 실패')
+  e.target.style.display = 'none'
+}
+
 const goBack = () => router.back()
 
 const fetchCurrentUserCode = () => {
@@ -572,12 +582,13 @@ const fetchProductDetail = async () => {
     if (response.data?.success) {
       product.value = response.data.data || {}
 
-      // 이미지 인덱스 보정
       const imgs = Array.isArray(product.value.imageUrls) ? product.value.imageUrls : []
       if (imgs.length === 0) selectedImageIndex.value = 0
       else if (selectedImageIndex.value >= imgs.length) selectedImageIndex.value = 0
 
       if (product.value.sellerCode) await fetchSellerInfo(product.value.sellerCode)
+
+      console.log('✅ 상품 데이터 로드 완료:', product.value)
     } else {
       throw new Error(
         response.data?.message || response.data?.msg || '상품 정보를 불러올 수 없습니다.',
@@ -676,7 +687,6 @@ const handleBuyNow = async (productName, productCode) => {
   }
 }
 
-// 상품 수정 핸들러
 const handleEdit = () => {
   const productCode = resolveProductCode()
   if (!productCode) {
@@ -709,10 +719,24 @@ const goToProduct = async (productCode) => {
   await router.push(`/productDetail/${productCode}`)
 }
 
+// ========== 추가: 이미지 업데이트 이벤트 리스너 ==========
+const handleImagesUpdated = (event) => {
+  const { productCode: eventCode } = event.detail || {}
+  const currentCode = resolveProductCode()
+
+  if (eventCode === currentCode) {
+    console.log('🔄 이미지 업데이트 완료 - 상품 데이터 새로고침')
+    fetchProductDetail()
+  }
+}
+
 onMounted(async () => {
   fetchCurrentUserCode()
   await Promise.all([fetchProductDetail(), fetchRecommendations()])
   window.addEventListener('resize', handleResize)
+
+  // ========== 추가: 이미지 업데이트 이벤트 리스닝 ==========
+  window.addEventListener('product-images-updated', handleImagesUpdated)
 })
 
 watch(
@@ -724,6 +748,8 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  // ========== 추가: 이벤트 리스너 정리 ==========
+  window.removeEventListener('product-images-updated', handleImagesUpdated)
 })
 </script>
 
