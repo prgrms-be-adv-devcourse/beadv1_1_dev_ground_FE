@@ -11,7 +11,7 @@ export const searchProducts = (params = {}) => {
       minPrice: params.minPrice || null,
       maxPrice: params.maxPrice || null,
       sellerCode: params.sellerCode || null,
-      productStatus: params.productStatus || null,
+      productStatus: params.productStatus.toLowerCase() || null,
       sortBy: params.sortBy || 'createdAt',
       sortDirection: params.sortDirection || 'desc',
       page: params.page || 1,
