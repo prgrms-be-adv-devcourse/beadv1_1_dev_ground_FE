@@ -90,10 +90,10 @@
             >
               <span class="text-lg leading-none">💬</span>
               <span
-                v-if="unreadChatCount > 0"
+                v-if="unreadCount > 0"
                 class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center font-bold leading-none ring-2 ring-white"
               >
-                {{ unreadChatCount }}
+                {{ unreadCount }}
               </span>
               <span
                 class="pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 opacity-0 translate-y-1 transition group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0"
@@ -153,34 +153,30 @@
 
 <script setup>
 import router from '@/router'
-import { ref, onMounted, watch, computed } from 'vue' // computed removed
-import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { ref, onMounted, computed } from 'vue' // computed removed
-import { useCartStore } from '@/stores/cart' // Import Store
+import { ref, onMounted, computed, watch } from 'vue'
+import { useCartStore } from '@/stores/cart'
 import ChatModal from '@/components/ChatModal.vue'
 import { useChatStore } from '@/stores/chat'
-
 import { storeToRefs } from 'pinia'
-import { api } from '@/api/index.js'
+import { useRoute } from 'vue-router'
+import { api } from '@/api'
 
 const cartStore = useCartStore()
-const { count: cartCount } = storeToRefs(cartStore)
 const chatStore = useChatStore()
-const { isOpen: isChatOpen, unreadCount: unreadChatCount, targetRoomId } = storeToRefs(chatStore)
+const { count: cartCount } = storeToRefs(cartStore)
+const { isOpen: isChatOpen, unreadCount, targetRoomId } = storeToRefs(chatStore)
 const route = useRoute()
 
 // 상태 관리
 const showMobileMenu = ref(false)
-const showChatModal = ref(false)
 
-// 인증 관련 상태
+// 인증/유저 상태
 const accessToken = ref(null)
 const refreshToken = ref(null)
 const userInfo = ref({ nickname: '' })
-const unreadChatCount = ref(0)
-const balance = ref(0)
 const isLoggedIn = ref(false)
+const balance = ref(0)
 const formattedBalance = computed(() => `${balance.value.toLocaleString('ko-KR')} 원`)
 const userName = ref('')
 // 상태 관리
@@ -216,30 +212,33 @@ const goToLogin = () => {
   router.push('/login')
 }
 
+const openChat = () => {
+  chatStore.open()
+}
+
 const handleLogout = async () => {
-  if (confirm('로그아웃 하시겠습니까?')) {
-    try {
-      const access = sessionStorage.getItem('accessToken') || accessToken.value
-      await axios.post(
-        '/api/users/logout',
-        {},
-        {
-          headers: access ? { access } : {},
-          withCredentials: true,
-        },
-      )
-    } catch (error) {
-      console.error('로그아웃 API 호출 실패', error)
-      // API 실패해도 클라이언트 상태는 정리
-    } finally {
-      clearTokens()
-      userInfo.value.nickname = ''
-      cartCount.value = 0
-      unreadChatCount.value = 0
-      showMobileMenu.value = false
-      isLoggedIn.value = false
-      router.push('/')
-    }
+  if (!confirm('로그아웃 하시겠습니까?')) return
+  try {
+    const access = sessionStorage.getItem('accessToken') || accessToken.value
+    await axios.post(
+      '/api/users/logout',
+      {},
+      {
+        headers: access ? { access } : {},
+        withCredentials: true,
+      },
+    )
+  } catch (error) {
+    console.error('로그아웃 API 호출 실패', error)
+    // API 실패해도 클라이언트 상태는 정리
+  } finally {
+    clearTokens()
+    userInfo.value.nickname = ''
+    cartCount.value = 0
+    unreadCount.value = 0
+    showMobileMenu.value = false
+    isLoggedIn.value = false
+    router.push('/')
   }
 }
 
@@ -249,6 +248,8 @@ const loadTokens = () => {
   if (access) {
     accessToken.value = access
     isLoggedIn.value = true
+  } else {
+    isLoggedIn.value = false
   }
 }
 
