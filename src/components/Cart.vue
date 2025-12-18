@@ -207,56 +207,6 @@ const { count: cartCount, cartItems, recommendCartItems } = storeToRefs(cartStor
 const selectAll = ref(false)
 const selectedItems = ref([])
 
-// 더미 데이터 (실제로는 API에서 가져옴)
-// const cartItems = ref([
-//   {
-//     productCode: 1,
-//     productName: '아이폰 15 Pro 256GB 티타늄 블루',
-//     productPrice: 1350000,
-//     thumbnail: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop',
-//   },
-//   {
-//     productCode: 2, 
-//     productName: '갤럭시 버즈2 프로 그라파이트',
-//     productPrice: 180000,
-//     thumbnail: 'https://images.unsplash.com/photo-1590658165737-15a047b7a28e?w=400&h=400&fit=crop',
-//   },
-//   {
-//     productCode: 3,
-//     productName: '맥북 에어 M2 13인치 미드나잇',
-//     productPrice: 1450000,
-//     thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop',
-//   }
-// ])
-
-// 추천 상품
-// const recommendedItems = ref([
-//   {
-//     id: 101,
-//     name: '에어팟 프로 2세대',
-//     price: 280000,
-//     image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&h=400&fit=crop'
-//   },
-//   {
-//     id: 102,
-//     name: '아이패드 프로 11인치',
-//     price: 1200000,
-//     image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
-//   },
-//   {
-//     id: 103,
-//     name: '애플워치 시리즈 9',
-//     price: 550000,
-//     image: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=400&h=400&fit=crop'
-//   },
-//   {
-//     id: 104,
-//     name: '맥 미니 M2',
-//     price: 750000,
-//     image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=400&fit=crop'
-//   }
-// ])
-
 const slidingRecommendCartItems = computed(() => {
   if (recommendCartItems.value.length === 0) return []
   return [...recommendCartItems.value, ...recommendCartItems.value, ...recommendCartItems.value]
@@ -278,7 +228,6 @@ const totalPrice = computed(() => {
 watch(selectedItems, (newVal) => {
   const totalCount = Object.keys(cartItems.value).length
   selectAll.value = newVal.length === totalCount && totalCount > 0
-  console.log(selectedItems.value)
 })
 
 // 메서드
@@ -307,7 +256,6 @@ const deleteSelected = () => {
     }
   } else {
     if (confirm(`선택한 ${selectedItems.value.length}개 상품을 삭제하시겠습니까?`)) {
-      console.log(selectedItems.value)
       cartStore.deleteCartItemsSel(selectedItems.value)
     }
   }
@@ -316,29 +264,25 @@ const deleteSelected = () => {
 
 const orderItem = async (productName, productCode) => {
   if (confirm(`${productName} 상품을 주문하시겠습니까?`)) {
-    const data = await createOrder(productCode)
-    if (data.success) {
-      cartStore.deleteCartItemOne(productCode)
-      alert('주문이 완료되었습니다.')
-    } else {
-      return;
-    }
+    await createOrder(productCode)
+    cartStore.deleteCartItemOne(productCode)
+    alert('주문이 완료되었습니다.')
+    return;
   }
 }
 
 const orderItems = async () => {
   if (confirm('선택한 상품들을 주문하시겠습니까?')) {
-    const data = await createOrders(selectedItems.value)
-    if (data.success) {
-      cartStore.deleteCartItemsSel(selectedItems.value)
-      alert('주문이 완료되었습니다.')
-    } else {
-      return;
-    }
+    await createOrders(selectedItems.value)
+    cartStore.deleteCartItemsSel(selectedItems.value)
+    alert('주문이 완료되었습니다.')
+    return;
   }
 }
 
-// onMounted(() => {
-//   cartStore.getCartInfo()
-// })
+onMounted(async () => {
+  const data = await cartStore.getRecommendProductsByCartItems()
+  console.log(data)
+})
+
 </script>

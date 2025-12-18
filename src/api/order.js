@@ -3,14 +3,7 @@ import { api } from "."
 // 주문 조회
 export const getOrders = async (payload) => {
     try {
-        const { data } = await api.get('/commerce/order', {
-            "page": payload.page,
-            "size": payload.size,
-            "sort": payload.sort,
-            "direction": payload.direction,
-            "orderStatus": payload.orderStatus 
-        })
-
+        const { data } = await api.get(`/commerce/order?page=${payload.page}&size=${payload.size}&sort=${payload.sort}&direction=${payload.direction}&orderStatus=${payload.orderStatus}`)
         return data.data
     } catch (error) {
         console.log(error)
@@ -20,8 +13,7 @@ export const getOrders = async (payload) => {
 // 주문 생성(단건)
 export const createOrder = async (productCode) => {
     try {
-        const { data } = await api.post(`commerce/order/${productCode}`)
-        return data.data
+        await api.post(`commerce/order/${productCode}`)
     } catch (error) {
         console.log(error)
     }
