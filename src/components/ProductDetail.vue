@@ -458,15 +458,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
+<<<<<<< HEAD
 import { createOrder } from '@/api/order'
+=======
+
+>>>>>>> 69f1282 ([FEAT] 상품 수정 및 삭제 구현 완료)
 import { getProductDetail, recommendByProductDetail, deleteProduct } from '@/api/product'
 import { getUserInfoByCode } from '@/api/user'
-import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const route = useRoute()
@@ -506,22 +509,17 @@ const tabs = [
 
 const displayedRecommendations = computed(() => {
   if (recommendedProducts.value.length === 0) return []
-
   const start = currentRecommendPage.value * itemsPerPage.value
   const end = start + itemsPerPage.value
-
   return recommendedProducts.value.slice(start, end)
 })
 
-// 판매자 본인 여부 확인
-const isSeller = computed(() => {
-  console.log('[isSeller Debug] currentUserCode:', currentUserCode.value)
-  console.log('[isSeller Debug] product.sellerCode:', product.value?.sellerCode)
-  console.log('[isSeller Debug] 비교 결과:', currentUserCode.value === product.value?.sellerCode)
+const resolveProductCode = () => {
+  return route.params.productCode || route.params.id || product.value?.productCode || ''
+}
 
-  if (!currentUserCode.value || !product.value?.sellerCode) {
-    return false
-  }
+const isSeller = computed(() => {
+  if (!currentUserCode.value || !product.value?.sellerCode) return false
   return currentUserCode.value === product.value.sellerCode
 })
 
@@ -538,28 +536,80 @@ const previousPage = () => {
 const formatPrice = (price) => (price ? price.toLocaleString('ko-KR') : '0')
 
 const getProductStatusText = (status) => {
-  const statusMap = {
-    ON_SALE: '판매중',
-    RESERVED: '예약중',
-    SOLD_OUT: '판매완료',
-  }
+  const statusMap = { ON_SALE: '판매중', RESERVED: '예약중', SOLD_OUT: '판매완료' }
   return statusMap[status] || status
 }
-
-// const handleMainImageError = (e) => {
-//   e.target.style.display = 'none'
-// }
-
-// const handleThumbnailError = (e) => {
-//   e.target.parentElement.style.display = 'none'
-// }
 
 const handleImageError = (e) => {
   e.target.style.display = 'none'
 }
 
-const goBack = () => {
-  router.back()
+const goBack = () => router.back()
+
+const fetchCurrentUserCode = () => {
+  const userCodeFromStorage = sessionStorage.getItem('userCode')
+  if (userCodeFromStorage) currentUserCode.value = userCodeFromStorage
+}
+
+const fetchSellerInfo = async (sellerCode) => {
+  try {
+    const response = await getUserInfoByCode(sellerCode)
+    if (response.data?.success && response.data?.data) {
+      sellerInfo.value = response.data.data
+    }
+  } catch (e) {
+    console.error('[판매자 정보] 에러:', e)
+  }
+}
+
+const fetchProductDetail = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const productCode = resolveProductCode()
+    if (!productCode) throw new Error('상품 코드가 없습니다.')
+
+    const response = await getProductDetail(productCode)
+    if (response.data?.success) {
+      product.value = response.data.data || {}
+
+      // 이미지 인덱스 보정
+      const imgs = Array.isArray(product.value.imageUrls) ? product.value.imageUrls : []
+      if (imgs.length === 0) selectedImageIndex.value = 0
+      else if (selectedImageIndex.value >= imgs.length) selectedImageIndex.value = 0
+
+      if (product.value.sellerCode) await fetchSellerInfo(product.value.sellerCode)
+    } else {
+      throw new Error(
+        response.data?.message || response.data?.msg || '상품 정보를 불러올 수 없습니다.',
+      )
+    }
+  } catch (e) {
+    console.error('[상품 상세] 에러:', e)
+    error.value = e.message || '상품 정보를 불러오는 중 오류가 발생했습니다.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchRecommendations = async () => {
+  loadingRecommend.value = true
+  try {
+    const productCode = resolveProductCode()
+    const response = await recommendByProductDetail(productCode, 20)
+    if (response.data?.success && response.data?.data) {
+      const data = response.data.data
+      recommendedProducts.value = data.recommendSpecs || data || []
+    } else {
+      recommendedProducts.value = []
+    }
+  } catch (e) {
+    console.error('[추천 상품] 에러:', e)
+    recommendedProducts.value = []
+  } finally {
+    loadingRecommend.value = false
+  }
 }
 
 const handleChat = async () => {
@@ -588,9 +638,8 @@ const handleChat = async () => {
   }
   sessionStorage.setItem('X-CODE', userCode)
 
-  const productCode = route.params.id || route.params.productCode || product.value.productCode
+  const productCode = resolveProductCode()
   const sellerCode = product.value.sellerCode
-  console.log(productCode, sellerCode)
   if (!productCode || !sellerCode) {
     alert('상품 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
     return
@@ -601,23 +650,17 @@ const handleChat = async () => {
   }
 
   try {
-    const { data } = await createOrGetChatRoom({
-      productCode,
-      sellerCode,
-      buyerCode: userCode,
-    })
+    const { data } = await createOrGetChatRoom({ productCode, sellerCode, buyerCode: userCode })
     const room = data?.data || data
-    if (room?.id) {
-      chatStore.openRoom(room.id)
-    } else {
-      chatStore.open()
-    }
-  } catch (err) {
-    console.error('채팅 시작 실패:', err)
+    if (room?.id) chatStore.openRoom(room.id)
+    else chatStore.open()
+  } catch (e) {
+    console.error('채팅 시작 실패:', e)
     alert('채팅을 시작하지 못했습니다. 다시 시도해주세요.')
   }
 }
 
+<<<<<<< HEAD
 const handleAddToCart = async (productCode) => {
   console.log(productCode)
   if (confirm(`장바구니에 담으시겠습니까?`)) {
@@ -637,185 +680,62 @@ const handleBuyNow = async (productName, productCode) => {
 }
 
 // 상품 수정 핸들러
+=======
+// ✅ 수정 버튼: 라우터 param명 혼동 방지
+>>>>>>> 69f1282 ([FEAT] 상품 수정 및 삭제 구현 완료)
 const handleEdit = () => {
-  const productCode = route.params.productCode
+  const productCode = resolveProductCode()
+  if (!productCode) {
+    alert('상품 코드를 찾지 못했습니다.')
+    return
+  }
   router.push(`/productupdate/${productCode}`)
 }
 
-// 상품 삭제 핸들러 (수정된 부분)
 const handleDelete = async () => {
   const confirmed = confirm('정말로 상품을 삭제하시겠습니까?')
   if (!confirmed) return
 
   try {
-    const productCode = route.params.productCode
+    const productCode = resolveProductCode()
     const response = await deleteProduct(productCode)
-
-    console.log('🗑️ [삭제 응답]:', response)
-    console.log('🗑️ [삭제 응답 status]:', response.status)
-
-    // 204 No Content 또는 200 OK 모두 성공으로 처리
     if (response.status === 204 || response.status === 200) {
       alert('상품이 성공적으로 삭제되었습니다.')
       router.push('/')
     } else {
       alert('상품 삭제에 실패했습니다.')
     }
-  } catch (err) {
-    console.error('[상품 삭제] 에러:', err)
+  } catch (e) {
+    console.error('[상품 삭제] 에러:', e)
     alert('상품 삭제 중 오류가 발생했습니다.')
   }
 }
 
-const fetchProductDetail = async ({ silent = false } = {}) => {
-  if (!silent) loading.value = true
-  error.value = null
-  try {
-    loading.value = true
-    error.value = null
-
-    const productCode = route.params.id || route.params.productCode
-    if (!productCode) {
-      throw new Error('상품 코드가 없습니다.')
-    }
-
-    const accessToken = sessionStorage.getItem('accessToken')
-    if (!accessToken) {
-      throw new Error('로그인이 필요합니다.')
-    }
-
-    const response = await getProductDetail(productCode)
-    if (response.data.success) {
-      product.value = response.data.data
-
-      console.log('[상품 상세] product:', product.value)
-
-      if (!product.value.imageUrls || product.value.imageUrls.length === 0) {
-        selectedImageIndex.value = 0
-      } else if (selectedImageIndex.value >= product.value.imageUrls.length) {
-        selectedImageIndex.value = 0
-      }
-
-      // 판매자 정보 가져오기
-      if (product.value.sellerCode) {
-        await fetchSellerInfo(product.value.sellerCode)
-      }
-    } else {
-      throw new Error(response.data.message || '상품 정보를 불러올 수 없습니다.')
-    }
-  } catch (err) {
-    console.error('[상품 상세] 에러:', err)
-    error.value = err.message || '상품 정보를 불러오는 중 오류가 발생했습니다.'
-  } finally {
-    loading.value = false
-  }
+const goToProduct = async (productCode) => {
+  await router.push(`/productDetail/${productCode}`)
 }
 
-const handleMainImageError = (e) => {
-  console.error('메인 이미지 로드 실패:', e.target.src)
-  e.target.src = 'https://via.placeholder.com/400?text=Image+Not+Found'
+const handleAddToCart = async () => {
+  const confirmed = confirm('장바구니에 추가하시겠습니까?')
+  if (confirmed) alert('장바구니에 추가되었습니다.')
 }
 
-const handleThumbnailError = (e) => {
-  console.error('썸네일 이미지 로드 실패:', e.target.src)
-  e.target.src = 'https://via.placeholder.com/80?text=No+Image'
-}
-
-const fetchCurrentUserCode = () => {
-  // sessionStorage에서 직접 userCode 가져오기
-  const userCodeFromStorage = sessionStorage.getItem('userCode')
-  if (userCodeFromStorage) {
-    currentUserCode.value = userCodeFromStorage
-    console.log('[현재 사용자] userCode:', userCodeFromStorage)
-  } else {
-    console.log('[현재 사용자] 로그인하지 않은 상태')
-  }
-}
-
-const fetchSellerInfo = async (sellerCode) => {
-  try {
-    const response = await getUserInfoByCode(sellerCode)
-    console.log('[판매자 정보] response:', response.data)
-
-    if (response.data.success && response.data.data) {
-      sellerInfo.value = response.data.data
-      console.log('[판매자 정보] sellerInfo:', sellerInfo.value)
-    }
-  } catch (err) {
-    console.error('[판매자 정보] 에러:', err)
-  }
-}
-
-const fetchRecommendations = async () => {
-  loadingRecommend.value = true
-  try {
-    const productCode = route.params.id || route.params.productCode
-    const response = await recommendByProductDetail(productCode, 20)
-
-    if (response.data.success && response.data.data) {
-      const data = response.data.data
-      recommendedProducts.value = data.recommendSpecs || data || []
-    } else {
-      recommendedProducts.value = []
-    }
-  } catch (err) {
-    console.error('[추천 상품] 에러:', err)
-    recommendedProducts.value = []
-  } finally {
-    loadingRecommend.value = false
-  }
-}
-
-let imagePollTimer = null
-const stopImagePolling = () => {
-  if (imagePollTimer) {
-    clearInterval(imagePollTimer)
-    imagePollTimer = null
-  }
-}
-const startImagePollingIfNeeded = () => {
-  stopImagePolling()
-
-  const hasImages = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
-  if (hasImages) return
-
-  let attempts = 0
-  const MAX_ATTEMPTS = 20
-  const INTERVAL_MS = 1000
-
-  imagePollTimer = setInterval(async () => {
-    attempts += 1
-    await fetchProductDetail({ silent: true })
-
-    const ok = Array.isArray(product.value.imageUrls) && product.value.imageUrls.length > 0
-    if (ok || attempts >= MAX_ATTEMPTS) stopImagePolling()
-  }, INTERVAL_MS)
-}
+const handleBuyNow = () => alert('주문 기능은 준비 중입니다.')
 
 onMounted(async () => {
-  // fetchCurrentUserCode는 동기 함수이므로 바로 실행
   fetchCurrentUserCode()
-
-  // 나머지 비동기 함수들은 Promise.all로 실행
   await Promise.all([fetchProductDetail(), fetchRecommendations()])
-
-  startImagePollingIfNeeded()
   window.addEventListener('resize', handleResize)
 })
 
 watch(
-  () => route.params.productCode,
-  async (newCode, oldCode) => {
-    if (newCode && newCode !== oldCode) {
-      stopImagePolling()
-      await Promise.all([fetchProductDetail(), fetchRecommendations()])
-      startImagePollingIfNeeded()
-    }
+  () => [route.params.productCode, route.params.id],
+  async () => {
+    await Promise.all([fetchProductDetail(), fetchRecommendations()])
   },
 )
 
 onUnmounted(() => {
-  stopImagePolling()
   window.removeEventListener('resize', handleResize)
 })
 </script>

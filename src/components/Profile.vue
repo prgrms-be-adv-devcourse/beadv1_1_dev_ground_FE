@@ -15,12 +15,6 @@
               >
                 프로필 변경
               </button>
-              <button
-                @click="goToDeposit"
-                class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-              >
-                예치금 충전
-              </button>
             </div>
           </div>
 
@@ -89,7 +83,11 @@
                     :key="product.code"
                     class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
                   >
-                    <img :src="product.image" :alt="product.name" class="w-full h-48 object-cover" />
+                    <img
+                      :src="product.image"
+                      :alt="product.name"
+                      class="w-full h-48 object-cover"
+                    />
                     <div class="p-4">
                       <div class="flex justify-between items-start mb-2">
                         <h3 class="font-semibold text-gray-900">{{ product.name }}</h3>
@@ -325,7 +323,7 @@ const loadSaleProducts = async ({ page = 1 } = {}) => {
     const payload = response?.data?.data ?? response?.data ?? response
     const list = Array.isArray(payload)
       ? payload
-      : payload?.items ?? payload?.content ?? payload?.products ?? []
+      : (payload?.items ?? payload?.content ?? payload?.products ?? [])
 
     saleProducts.value = list.map(normalizeSaleProduct)
     salesTotalPages.value = payload?.totalPages ?? payload?.page?.totalPages ?? 1
@@ -370,13 +368,9 @@ const goToRegister = () => {
   router.push('/register')
 }
 
-const goToDeposit = () => {
-  router.push('/checkout')
-}
-
 const editProduct = (productCode) => {
   console.log('상품 수정:', productCode)
-  // router.push('/')
+  router.push({ name: 'productupdate', params: { productCode } })
 }
 
 const deleteProduct = async (productCode) => {

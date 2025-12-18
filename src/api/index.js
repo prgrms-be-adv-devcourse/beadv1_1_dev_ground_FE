@@ -18,8 +18,7 @@ const resolveAccessToken = () =>
   sessionStorage.getItem('accessToken') || sessionStorage.getItem('access')
 
 const resolveUserCode = (accessToken) => {
-  const storedCode =
-    sessionStorage.getItem('X-CODE') || sessionStorage.getItem('userCode')
+  const storedCode = sessionStorage.getItem('X-CODE') || sessionStorage.getItem('userCode')
 
   if (storedCode) return storedCode
   if (!accessToken) return ''

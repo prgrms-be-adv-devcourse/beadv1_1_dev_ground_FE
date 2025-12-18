@@ -1052,7 +1052,7 @@ const fetchRecommendedProducts = async () => {
 }
 
 const goToProduct = (productCode) => {
-  router.push(`/productdetail/${productCode}`)
+  router.push(`/productDetail/${productCode}`)
 }
 
 const handleClickOutside = (e) => {

@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           // target: env.VITE_API_BASE,
-           //target: 'http://localhost:8000/',
-           target: 'https://dbay.site/',
+          target: 'http://localhost:8000/',
+          // target: 'https://dbay.site/',
           changeOrigin: true,
           secure: false,
         },
