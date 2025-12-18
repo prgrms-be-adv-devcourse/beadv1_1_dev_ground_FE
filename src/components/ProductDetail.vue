@@ -381,13 +381,13 @@
             </svg>
           </button>
 
-          <!-- 상품 그리드 (2열) -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- 상품 그리드 (1행) -->
+          <div class="flex gap-4">
             <div
               v-for="(item, index) in displayedRecommendations"
               :key="`rec-${index}`"
               @click="goToProduct(item.productCode)"
-              class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
+              class="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg cursor-pointer transform hover:scale-105 transition-all"
             >
               <div class="w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img
@@ -464,13 +464,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
 import { createOrder } from '@/api/order'
+
 import { getProductDetail, recommendByProductDetail, deleteProduct } from '@/api/product'
 import { getUserInfoByCode } from '@/api/user'
+import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
-const cartStore = useChatStore()
+const cartStore = useCartStore()
 
 const loading = ref(true)
 const error = ref(null)
