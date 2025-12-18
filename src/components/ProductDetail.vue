@@ -247,7 +247,7 @@
                 </button>
 
                 <button
-                  @click="handleAddToCart"
+                  @click="handleAddToCart(product.productCode)"
                   class="py-3 bg-white border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,10 +441,12 @@ import { getUserInfo } from '@/api/user'
 import { createOrGetChatRoom } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
 import { createOrder } from '@/api/order'
+import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
+const cartStore = useCartStore()
 
 const loading = ref(true)
 const error = ref(null)
@@ -569,10 +571,12 @@ const handleChat = async () => {
   }
 }
 
-const handleAddToCart = async () => {
-  const confirmed = confirm('장바구니에 추가하시겠습니까?')
-  if (confirmed) {
+const handleAddToCart = async (productCode) => {
+  console.log(productCode)
+  if (confirm(`장바구니에 담으시겠습니까?`)) {
+    await cartStore.addItemToCart(productCode)
     alert('장바구니에 추가되었습니다.')
+    return;
   }
 }
 
