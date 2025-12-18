@@ -384,8 +384,7 @@
                     class="px-2 py-1 text-white text-xs font-bold rounded shadow-lg"
                     :class="{
                       'bg-green-500': product.productStatus === 'ON_SALE',
-                      'bg-gray-500': product.productStatus === 'RESERVED',
-                      'bg-red-500': product.productStatus === 'SOLD_OUT',
+                      'bg-red-500': product.productStatus === 'SOLD',
                     }"
                   >
                     {{ getProductStatusText(product.productStatus) }}
@@ -686,7 +685,7 @@ const recommendTitle = computed(() => {
 const formatPrice = (price) => (price ? price.toLocaleString('ko-KR') : '0')
 
 const getProductStatusText = (status) => {
-  const statusMap = { ON_SALE: '판매중', RESERVED: '예약중', SOLD_OUT: '판매완료' }
+  const statusMap = { ON_SALE: '판매중', SOLD: '판매완료' }
   return statusMap[status] || status
 }
 
@@ -999,7 +998,7 @@ const fetchProducts = async (reset = false) => {
 
     if (response.data.success) {
       const pageData = response.data.data
-      products.value = pageData.items || []
+      products.value = pageData.items ?? []
       totalCount.value = pageData.totalItems || 0
       totalPages.value = pageData.totalPages || 1 // ✅ 최소값 1
       if (reset) currentPage.value = 1
