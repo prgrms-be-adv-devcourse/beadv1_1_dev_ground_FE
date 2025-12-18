@@ -84,7 +84,7 @@
 
             <!-- Chat -->
             <button
-              @click="chatStore.toggle()"
+              @click="openChat"
               class="group relative inline-flex items-center justify-center h-10 w-10 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
               aria-label="채팅"
             >
@@ -178,33 +178,18 @@ const userInfo = ref({ nickname: '' })
 const isLoggedIn = ref(false)
 const balance = ref(0)
 const formattedBalance = computed(() => `${balance.value.toLocaleString('ko-KR')} 원`)
-const userName = ref('')
-// 상태 관리
-const showMobileMenu = ref(false)
-
-// const isLoggedIn = ref(true)true
-
-const isLoggedIn = computed(() => {
-  const access = sessionStorage.getItem('accessToken')
-  return !!access
-})
 
 // 메서드
 const goToCart = () => {
   console.log('장바구니로 이동')
   showMobileMenu.value = false
-  router.push('cart')
+  router.push('/cart')
 }
 
 const goToMyPage = () => {
   console.log('마이페이지로 이동')
   showMobileMenu.value = false
-  // router.push('/mypage')
-}
-
-const goToSell = () => {
-  console.log('판매하기 페이지로 이동')
-  // router.push('/sell')
+  router.push('/profile')
 }
 
 const goToLogin = () => {
