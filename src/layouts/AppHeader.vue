@@ -154,7 +154,6 @@
 
 <script setup>
 import router from '@/router'
-import axios from 'axios'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import ChatModal from '@/components/ChatModal.vue'
