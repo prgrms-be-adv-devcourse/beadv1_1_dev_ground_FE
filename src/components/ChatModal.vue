@@ -8,15 +8,13 @@
           class="absolute top-3 right-3 w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center shadow-sm"
           @click="$emit('close')"
         >
-          ✕
+          x
         </button>
         <!-- Rooms -->
         <div class="w-1/3 border-r border-gray-200 flex flex-col">
           <div class="p-4 border-b border-gray-200 flex items-center justify-between">
             <div class="text-sm font-semibold text-gray-900">채팅방</div>
-            <div class="text-[12px] text-gray-500">
-              {{ hasUserCode ? '로그인 계정 기준' : '로그인 후 이용 가능' }}
-            </div>
+            <div v-if="!hasUserCode" class="text-[12px] text-gray-500">로그인 후 이용 가능</div>
           </div>
           <div class="p-4 border-b border-gray-200 flex items-center gap-2">
             <input
@@ -32,10 +30,7 @@
             >
               방 목록 불러오는 중...
             </div>
-            <div
-              v-else-if="!hasUserCode"
-              class="px-4 py-6 text-sm text-gray-500 text-center"
-            >
+            <div v-else-if="!hasUserCode" class="px-4 py-6 text-sm text-gray-500 text-center">
               로그인 후 채팅방을 볼 수 있습니다.
             </div>
             <div
@@ -126,10 +121,7 @@
                 class="flex"
                 :class="isMine(msg) ? 'justify-end' : 'justify-start'"
               >
-                <div
-                  v-if="isMine(msg)"
-                  class="flex items-end gap-2 w-full max-w-full justify-end"
-                >
+                <div v-if="isMine(msg)" class="flex items-end gap-2 w-full max-w-full justify-end">
                   <div class="flex items-center pb-1">
                     <span
                       v-if="!(msg.read ?? msg.isRead)"
@@ -164,10 +156,7 @@
                   </div>
                 </div>
 
-                <div
-                  v-else
-                  class="flex items-end gap-2 w-full max-w-full justify-start"
-                >
+                <div v-else class="flex items-end gap-2 w-full max-w-full justify-start">
                   <div class="flex flex-col items-center">
                     <div
                       class="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-slate-100 to-indigo-100 flex items-center justify-center text-xs font-semibold text-gray-700 shadow-inner"
@@ -251,9 +240,7 @@ const decodeUserCodeFromToken = (token) => {
 
 const ensureUserCode = () => {
   const decoded = decodeUserCodeFromToken(getAccessToken())
-  const stored =
-    sessionStorage.getItem('X-CODE') ||
-    sessionStorage.getItem('userCode')
+  const stored = sessionStorage.getItem('X-CODE') || sessionStorage.getItem('userCode')
 
   if (decoded && decoded !== stored) {
     userCode.value = decoded
@@ -351,7 +338,9 @@ const formatTime = (iso) => {
   if (!iso) return ''
   try {
     const d = new Date(iso)
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // KST 기준으로 9시간 보정해 표시
+    const adjusted = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+    return adjusted.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   } catch (e) {
     return typeof iso === 'string' ? iso : ''
   }
@@ -377,17 +366,68 @@ const getCounterpartCode = (room) => {
 
 const isMine = (msg) => msg?.senderCode === userCode.value
 
+const extractNickname = (payload = {}, fallback = '') =>
+  payload?.nickname ||
+  payload?.user?.nickname ||
+  payload?.data?.nickname ||
+  payload?.profile?.nickname ||
+  payload?.name ||
+  fallback ||
+  '알 수 없음'
+
+const extractProfileImage = (payload = '') =>
+  payload?.profileImage ||
+  payload?.profileImageUrl ||
+  payload?.user?.profileImage ||
+  payload?.user?.profileImageUrl ||
+  ''
+
+// 판매자/구매자 정보를 동시에 조회해 표시 닉네임이 엇갈리는 문제를 방지
+const getUserInfos = async (sellerCode, buyerCode) => {
+  if (!sellerCode || !buyerCode) return null
+  const requester = await ensureUserCodeAsync()
+  if (!requester) return null
+  try {
+    const { data } = await api.get('/users/sample', {
+      headers: { 'X-CODE': requester },
+      params: { sellerCode, buyerCode },
+    })
+    const payload = data?.data || data || {}
+    const sellerPayload =
+      payload.seller || payload.sellerInfo || payload.sellerUser || payload.sellerUserInfo || {}
+    const buyerPayload =
+      payload.buyer || payload.buyerInfo || payload.buyerUser || payload.buyerUserInfo || {}
+
+    userProfiles.value = {
+      ...userProfiles.value,
+      [sellerCode]: {
+        nickname: extractNickname(sellerPayload, sellerCode),
+        profileImage: extractProfileImage(sellerPayload),
+      },
+      [buyerCode]: {
+        nickname: extractNickname(buyerPayload, buyerCode),
+        profileImage: extractProfileImage(buyerPayload),
+      },
+    }
+
+    return payload
+  } catch (e) {
+    console.error('유저 정보 조회 실패', e)
+    return null
+  }
+}
+
 const loadUserProfile = async (code) => {
   if (!code || userProfiles.value[code] || loadingProfileCodes.has(code)) return
   loadingProfileCodes.add(code)
   try {
-    const { data } = await api.get('/users/')
+    const { data } = await api.get('/users/', { headers: { 'X-CODE': code } })
     const payload = data?.data || data
     userProfiles.value = {
       ...userProfiles.value,
       [code]: {
-        nickname: payload?.nickname || code,
-        profileImage: payload?.profileImage || payload?.profileImageUrl || '',
+        nickname: extractNickname(payload, code),
+        profileImage: extractProfileImage(payload),
       },
     }
   } catch (e) {
@@ -409,9 +449,7 @@ const prefetchProfiles = async (codes = []) => {
 const markLocalRead = (readerCode, chatId) => {
   if (!readerCode) return
   messages.value = messages.value.map((m) =>
-    m.senderCode && m.senderCode !== readerCode
-      ? { ...m, read: true, isRead: true }
-      : m,
+    m.senderCode && m.senderCode !== readerCode ? { ...m, read: true, isRead: true } : m,
   )
   if (selectedRoom.value?.id === chatId) {
     const idx = rooms.value.findIndex((r) => r.id === chatId)
@@ -541,7 +579,7 @@ const loadRooms = async () => {
       headers: { 'X-CODE': userCode.value },
     })
     rooms.value = Array.isArray(data) ? data : data?.data || []
-    console.log("응답:",data)
+    console.log('응답:', data)
     emit(
       'unread-update',
       rooms.value.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0),
@@ -601,6 +639,7 @@ const selectRoom = async (room) => {
   selectedRoom.value = room
   console.log(selectedRoom.value)
   messages.value = []
+  getUserInfos(room.sellerCode, room.buyerCode)
   prefetchProfiles([room.sellerCode, room.buyerCode, userCode.value])
   await connectStomp(room.id) // 구독 먼저
   await loadMessages(room.id) // 이 호출에서 읽음 이벤트 발생 → 구독 후라 놓치지 않음
